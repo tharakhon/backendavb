@@ -1,98 +1,290 @@
-const express = require('express');
-const mysql = require('mysql');
+const express = require("express");
+var bodyParser = require('body-parser')
+var jwt = require('jsonwebtoken');
+var jsonParser = bodyParser.json()
 const app = express();
+const mysql = require("mysql");
+const cors = require("cors");
+
+app.use(cors());
 app.use(express.json());
 
-const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password:'',
-    database:'webavb',
-    port:'3307'
-})
+const db = mysql.createConnection({
+  user: "root",
+  host: "localhost",
+  password: "",
+  database: 'webavb',
+  port:'3307'
+});
+app.use(bodyParser.json());
 
-connection.connect((err) => {
-    if(err){
-        console.log('Error connecting to Mysql database = ', err)
-        return;
-    }
-    console.log('Mysql successfully connected');
-})
+// app.post('/api/saveUser', (req, res) => {
+//   const { fullname, email, tel } = req.body;
 
-app.post("/create", async (req,res) => {
-    const {username, email , tel} = req.body;
+//   const sql = 'INSERT INTO user (name, email, tel) VALUES (?, ?, ?)';
+//   db.query(sql, [fullname, email, tel], (err, result) => {
+//     if (err) {
+//       console.error('Error saving user:', err); // Add this line
+//       res.status(500).send('Error saving user');
+//     } else {
+//       console.log('User saved successfully');
+//       res.status(200).send('User saved successfully');
+//     }
+//   });
+// });
+// app.post('/login', jsonParser,function (req, res, next) {
+//   connection.execute(
+//     'SELECT * FROM user WHERE email=?',
+//     [req.body.email],
+//     function (err, users, fields) {
+//       if (err) {
+//         res.json({ status: 'error', message: err });
+//         return
+//       }if(users.length == 0){
+//         res.json({status: 'error', message: 'no user found' });
+//         return
+//       }
+//         if(isLogin){
+//           //token คือ jwt.sign(payload มีiat=issue at timeหรือ เวลาสร้างด้วย, secretOrPrivateKey, [options, callback])
+//           var token = jwt.sign({ email: users[0].email }, secret);
+//           //โครงสร้าง res.json(body)
+//           res.json({status : 'ok',message:'login success',token})
+//         }else{
+//           res.json({status : 'error',message:'login failed'})
+//         }
+      
+//     });
+// })
 
-    try{
-        connection.query(
-            "INSERT INTO user(username,email, tel) VALUES(?,?,?)",
-            [username, email, tel],
-            (err, results, fields) => {
-                if(err){
-                    console.log("Error while inserting a user into the database", err);
-                    return res.status(400).send();
-                }
-                return res.status(201).json({message:"New user successfully created!"});
-            }
-        )
-    }catch(err){
-        console.log(err);
-        return res.status(500).send();
-    }
-})
+// app.post('/authen', jsonParser,function (req, res, next) {
+//   try{
+//     const token = req.headers.authorization.split(' ')[1]
+//     var decoded = jwt.verify(token, secret);console.log(decoded)
+//     if(!decoded.email)
+//     {
+//       res.json({status :'error',message:err.message})
+//       return
+//     }
+//     res.json({status :'ok',decoded})
+//   }catch(err){
+//     res.json({status :'error',message:err.message})
+//   }
+// })
 
-app.get("/read", async (req,res) => {
-    try {
-        connection.query("SELECT * FROM user", (err,results,fields) =>{
-            if(err){
-                console.log(err);
-                return res.status(400).send();
-            }
-            res.status(200).json(results)
-        })
-    }catch(err){
-        console.log(err);
-        return res.status(500).send();
-    }
-
-})
-
-//Read single user from db
-app.get("/read/single/:email", async (req,res) => {
+// app.post('/logfile', jsonParser,function (req, res, next) {
+//   const token = req.headers.authorization.split(' ')[1]
+//   var decoded = jwt.verify(token, secret);console.log(decoded)
+//   connection.execute(
+//     'INSERT INTO logfile (email, status ) VALUES (?,?)',
+//     [decoded.email,req.body.status],
+//     function (err, results, fields) {
+//       if (err) {
+//         res.json({ status: 'error', message: err })
+//         return
+//       }
+//       res.json({ status: 'ok', message: "Success" })
+//     });
+// })
+  app.get("/user/:email", (req, res) => {
     const email = req.params.email;
-
-    try {
-        connection.query("SELECT * FROM user WHERE email = ?", [email] , (err,results,fields) =>{
-            if(err){
-                console.log(err);
-                return res.status(400).send();
-            }
-            res.status(200).json(results)
-        })
-    }catch(err){
+    db.query("SELECT * FROM user_master WHERE email = ?", [email] , (err, result) => {
+      if (err) {
         console.log(err);
-        return res.status(500).send();
+        res.status(500).send("Internal Server Error");
+      } else {
+        if (result.length > 0) {
+          res.send(result);
+        } else {
+          res.send("No data found in the database.");
+        }
+      }
+    });
+  });
+  app.post("/bank_create", (req, res) => {
+    const bank_email = req.body.bank_email; // Correctly extract from req.body
+    const bank_codename = '5f6d8g';
+    const bank_telephone = req.body.bank_telephone;
+    const bank_name = req.body.bank_name;
+    const bank_address = req.body.bank_address;
+    const bank_latitude = req.body.bank_latitude;
+    const bank_longitude = req.body.bank_longitude;
+    const bank_image = req.body.bank_image;
+    const bank_bronze = req.body.bank_bronze;
+    const bank_silver = req.body.bank_silver;
+    const bank_gold = req.body.bank_gold;
+    const bank_platinum = req.body.bank_platinum;
+    const rank_id = '1';
+  
+    if (!bank_email) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
+  
+    db.query(
+      "INSERT INTO bank_master (bank_email, bank_codename, bank_telephone, bank_address, bank_name, bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver, bank_gold, bank_platinum, rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [
+        bank_email, bank_codename, bank_telephone, bank_address, bank_name,
+        bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver,
+        bank_gold, bank_platinum, rank_id
+      ],
+      (err, result) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json({ error: "Internal server error" });
+        } else {
+          res.send("Values Inserted");
+        }
+      }
+    );
+  });
+//   app.post("/bank_create", (req,res) => {
+//     const bank_email = req.body.email;
+//     const bank_codename = '5f6d8g';
+//     const bank_telephone = req.body.tel;
+//     const bank_name = req.body.profile;
+//     const bank_address = req.body.address;
+//     const bank_latitude = req.body.lat;
+//     const bank_longitude = req.body.long;
+//     const bank_image = req.body.image;
+//     const bank_bronze = req.body.medals1;
+//     const bank_silver = req.body.medals2;
+//     const bank_gold = req.body.medals3;
+//     const bank_platinum = req.body.medals4;
+//     const rank_id = '1';
+//     if (!bank_email ) {
+//       return res.status(400).json({ error: "Missing required fields" });
+//     }
+//     db.query(
+//       "INSERT INTO bank_master (bank_email,bank_codename , bank_telephone,bank_address,bank_name,bank_latitude,bank_longitude,bank_image,bank_bronze,bank_silver,bank_gold,bank_platinum,rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+//       [bank_email,bank_codename , bank_telephone,bank_address,bank_name,bank_latitude , bank_longitude,bank_image,bank_bronze,bank_silver,bank_gold,bank_platinum,rank_id],
+//       (err, result) => {
+//        if (err) {
+//          console.log(err);
+//        } else {
+//          res.send("Values Inserted");
+//        }
+//      }
+//    );
+//  });
+app.post("/bank_product", (req, res) => {
+  const bank_codename = '5f6d8g';
+  const product_name = req.body.product_name;
+  const product_image = req.body.product_image;
+  const product_type = req.body.product_type;
+  const product_type2 = req.body.product_type2;
+  const product_type3 = req.body.product_type3;
+  const product_type4 = req.body.product_type4;
+  const product_quantity = req.body.product_quantity;
+  const product_details = req.body.product_details;
+  const product_price = req.body.product_price;
 
-})
 
-// UPDATE data
-app.patch("/update/:email", async (req,res) => {
-    const email = req.params.email;
-    const newUsername = req.body.newUsername;
-    const newTel = req.body.newTel;
-
-    try {
-        connection.query("UPDATE user SET username = ? ,tel = ? WHERE email = ?", [newUsername,newTel,email] , (err,results,fields) =>{
-            if(err){
-                console.log(err);
-                return res.status(400).send();
-            }
-            res.status(200).json({message: "User username and tel update successfully"})
-        })
-    }catch(err){
+  db.query(
+    "INSERT INTO bank_product ( bank_codename,  product_name, product_image, product_type, product_type2,product_type3,product_type4,product_quantity, product_details, product_price) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    [
+      bank_codename,  product_name, product_image, product_type, product_type2,product_type3,product_type4,product_quantity, product_details, product_price
+    ],
+    (err, result) => {
+      if (err) {
         console.log(err);
-        return res.status(500).send();
+        return res.status(500).json({ error: "Internal server error" });
+      } else {
+        res.send("Values Inserted");
+      }
     }
-})
+  );
+});
+ app.post("/create", (req,res) => {
+  const email = req.body.email;
+  const fullname = req.body.fullname;
+  const tel = req.body.tel;
+  const rank_id = '1';
+  db.query(
+    "INSERT INTO user_master (email,fullname , tel,rank_id) VALUES (?,?,?,?)",
+    [email,fullname , tel,rank_id],
+    (err, result) => {
+     if (err) {
+       console.log(err);
+     } else {
+       res.send("Values Inserted");
+     }
+   }
+ );
+});
+
+// app.post("/create", async (req,res) => {
+//     const {username, email , tel} = req.body;
+
+//     try{
+//         connection.query(
+//             "INSERT INTO user(username,email, tel) VALUES(?,?,?)",
+//             [username, email, tel],
+//             (err, results, fields) => {
+//                 if(err){
+//                     console.log("Error while inserting a user into the database", err);
+//                     return res.status(400).send();
+//                 }
+//                 return res.status(201).json({message:"New user successfully created!"});
+//             }
+//         )
+//     }catch(err){
+//         console.log(err);
+//         return res.status(500).send();
+//     }
+// })
+
+// app.get("/read", async (req,res) => {
+//     try {
+//         connection.query("SELECT * FROM user", (err,results,fields) =>{
+//             if(err){
+//                 console.log(err);
+//                 return res.status(400).send();
+//             }
+//             res.status(200).json(results)
+//         })
+//     }catch(err){
+//         console.log(err);
+//         return res.status(500).send();
+//     }
+
+// })
+
+// //Read single user from db
+// app.get("/read/single/:email", async (req,res) => {
+//     const email = req.params.email;
+
+//     try {
+//         connection.query("SELECT * FROM user WHERE email = ?", [email] , (err,results,fields) =>{
+//             if(err){
+//                 console.log(err);
+//                 return res.status(400).send();
+//             }
+//             res.status(200).json(results)
+//         })
+//     }catch(err){
+//         console.log(err);
+//         return res.status(500).send();
+//     }
+
+// })
+
+// // UPDATE data
+// app.patch("/update/:email", async (req,res) => {
+//     const email = req.params.email;
+//     const newUsername = req.body.newUsername;
+//     const newTel = req.body.newTel;
+
+//     try {
+//         connection.query("UPDATE user SET username = ? ,tel = ? WHERE email = ?", [newUsername,newTel,email] , (err,results,fields) =>{
+//             if(err){
+//                 console.log(err);
+//                 return res.status(400).send();
+//             }
+//             res.status(200).json({message: "User username and tel update successfully"})
+//         })
+//     }catch(err){
+//         console.log(err);
+//         return res.status(500).send();
+//     }
+// })
 
 app.listen(5000, () => console.log('Server is running on port 5000'));
