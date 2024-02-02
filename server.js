@@ -9,12 +9,13 @@ const cors = require("cors");
 app.use(cors());
 app.use(express.json());
 
+
 const db = mysql.createConnection({
   user: "root",
   host: "localhost",
   password: "",
   database: 'webavb',
-  port:'3307'
+  port: '3307'
 });
 app.use(bodyParser.json());
 
@@ -52,7 +53,7 @@ app.use(bodyParser.json());
 //         }else{
 //           res.json({status : 'error',message:'login failed'})
 //         }
-      
+
 //     });
 // })
 
@@ -85,57 +86,57 @@ app.use(bodyParser.json());
 //       res.json({ status: 'ok', message: "Success" })
 //     });
 // })
-  app.get("/user/:email", (req, res) => {
-    const email = req.params.email;
-    db.query("SELECT * FROM user_master WHERE email = ?", [email] , (err, result) => {
+app.get("/user/:email", (req, res) => {
+  const email = req.params.email;
+  db.query("SELECT * FROM user_master WHERE email = ?", [email], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+app.post("/bank_create", (req, res) => {
+  const bank_email = req.body.bank_email; // Correctly extract from req.body
+  const bank_codename = req.body.bank_codename;
+  const bank_telephone = req.body.bank_telephone;
+  const bank_name = req.body.bank_name;
+  const bank_address = req.body.bank_address;
+  const bank_latitude = req.body.bank_latitude;
+  const bank_longitude = req.body.bank_longitude;
+  const bank_image = req.body.bank_image;
+  const bank_bronze = req.body.bank_bronze;
+  const bank_silver = req.body.bank_silver;
+  const bank_gold = req.body.bank_gold;
+  const bank_platinum = req.body.bank_platinum;
+  const rank_id = '1';
+
+  if (!bank_email) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  db.query(
+    "INSERT INTO bank_master (bank_email, bank_codename, bank_telephone, bank_address, bank_name, bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver, bank_gold, bank_platinum, rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    [
+      bank_email, bank_codename, bank_telephone, bank_address, bank_name,
+      bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver,
+      bank_gold, bank_platinum, rank_id
+    ],
+    (err, result) => {
       if (err) {
         console.log(err);
-        res.status(500).send("Internal Server Error");
+        return res.status(500).json({ error: "Internal server error" });
       } else {
-        if (result.length > 0) {
-          res.send(result);
-        } else {
-          res.send("No data found in the database.");
-        }
+        res.send("Values Inserted");
       }
-    });
-  });
-  app.post("/bank_create", (req, res) => {
-    const bank_email = req.body.bank_email; // Correctly extract from req.body
-    const bank_codename = '5f6d8g';
-    const bank_telephone = req.body.bank_telephone;
-    const bank_name = req.body.bank_name;
-    const bank_address = req.body.bank_address;
-    const bank_latitude = req.body.bank_latitude;
-    const bank_longitude = req.body.bank_longitude;
-    const bank_image = req.body.bank_image;
-    const bank_bronze = req.body.bank_bronze;
-    const bank_silver = req.body.bank_silver;
-    const bank_gold = req.body.bank_gold;
-    const bank_platinum = req.body.bank_platinum;
-    const rank_id = '1';
-  
-    if (!bank_email) {
-      return res.status(400).json({ error: "Missing required fields" });
     }
-  
-    db.query(
-      "INSERT INTO bank_master (bank_email, bank_codename, bank_telephone, bank_address, bank_name, bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver, bank_gold, bank_platinum, rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [
-        bank_email, bank_codename, bank_telephone, bank_address, bank_name,
-        bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver,
-        bank_gold, bank_platinum, rank_id
-      ],
-      (err, result) => {
-        if (err) {
-          console.log(err);
-          return res.status(500).json({ error: "Internal server error" });
-        } else {
-          res.send("Values Inserted");
-        }
-      }
-    );
-  });
+  );
+});
 //   app.post("/bank_create", (req,res) => {
 //     const bank_email = req.body.email;
 //     const bank_codename = '5f6d8g';
@@ -166,7 +167,7 @@ app.use(bodyParser.json());
 //    );
 //  });
 app.post("/bank_product", (req, res) => {
-  const bank_codename = '5f6d8g';
+  const bank_codename = req.body.bank_codename;
   const product_name = req.body.product_name;
   const product_image = req.body.product_image;
   const product_type = req.body.product_type;
@@ -181,7 +182,7 @@ app.post("/bank_product", (req, res) => {
   db.query(
     "INSERT INTO bank_product ( bank_codename,  product_name, product_image, product_type, product_type2,product_type3,product_type4,product_quantity, product_details, product_price) VALUES (?,?,?,?,?,?,?,?,?,?)",
     [
-      bank_codename,  product_name, product_image, product_type, product_type2,product_type3,product_type4,product_quantity, product_details, product_price
+      bank_codename, product_name, product_image, product_type, product_type2, product_type3, product_type4, product_quantity, product_details, product_price
     ],
     (err, result) => {
       if (err) {
@@ -193,24 +194,103 @@ app.post("/bank_product", (req, res) => {
     }
   );
 });
- app.post("/create", (req,res) => {
+app.post("/create", (req, res) => {
+  const image = req.body.image;
   const email = req.body.email;
   const fullname = req.body.fullname;
   const tel = req.body.tel;
   const rank_id = '1';
   db.query(
-    "INSERT INTO user_master (email,fullname , tel,rank_id) VALUES (?,?,?,?)",
-    [email,fullname , tel,rank_id],
+    "INSERT INTO user_master (image,email,fullname , tel,rank_id) VALUES (?,?,?,?,?)",
+    [image, email, fullname, tel, rank_id],
     (err, result) => {
-     if (err) {
-       console.log(err);
-     } else {
-       res.send("Values Inserted");
-     }
-   }
- );
+      if (err) {
+        console.log(err);
+      } else {
+        res.send("Values Inserted");
+      }
+    }
+  );
+});
+app.get("/readimage/:email", async (req, res) => {
+  const email = req.params.email;
+  db.query("SELECT image FROM user_master WHERE email = ?", [email], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+app.get("/showproduct/:email",(req, res) => {
+  const email = req.params.email;
+  if (!email) {
+    return res.status(400).send("Email parameter is missing.");
+  }
+  db.query("SELECT bank_product.* FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename WHERE bank_email = ? ", [email], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
 });
 
+app.get("/showProductUser/:bank_name",(req, res) => {
+  const bank_name = req.params.bank_name
+  db.query("SELECT bank_product.* FROM   bank_master JOIN bank_product ON bank_master.bank_codename = bank_product.bank_codename where bank_name = ? ",[bank_name], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+app.get("/showProductUser1/:id",(req, res) => {
+  const productId = req.params.id;
+  db.query("SELECT bank_product.* FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename  WHERE product_id = ?", [productId], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+
+app.get("/showbank", async (req, res) => {
+  db.query("SELECT * FROM bank_master ", (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
 // app.post("/create", async (req,res) => {
 //     const {username, email , tel} = req.body;
 
