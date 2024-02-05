@@ -1,10 +1,10 @@
 const express = require("express");
 var bodyParser = require('body-parser')
-var jwt = require('jsonwebtoken');
-var jsonParser = bodyParser.json()
 const app = express();
 const mysql = require("mysql");
 const cors = require("cors");
+
+
 
 app.use(cors());
 app.use(express.json());
@@ -177,8 +177,6 @@ app.post("/bank_product", (req, res) => {
   const product_quantity = req.body.product_quantity;
   const product_details = req.body.product_details;
   const product_price = req.body.product_price;
-
-
   db.query(
     "INSERT INTO bank_product ( bank_codename,  product_name, product_image, product_type, product_type2,product_type3,product_type4,product_quantity, product_details, product_price) VALUES (?,?,?,?,?,?,?,?,?,?)",
     [
@@ -262,8 +260,8 @@ app.get("/showProductUser/:bank_name",(req, res) => {
   });
 });
 app.get("/showProductUser1/:id",(req, res) => {
-  const productId = req.params.id;
-  db.query("SELECT bank_product.* FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename  WHERE product_id = ?", [productId], (err, result) => {
+  const product_id = req.params.id;
+  db.query("SELECT bank_product.* FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename  WHERE product_id = ?", [product_id], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -279,6 +277,21 @@ app.get("/showProductUser1/:id",(req, res) => {
 
 app.get("/showbank", async (req, res) => {
   db.query("SELECT * FROM bank_master ", (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+app.get("/showcodename/:email", async (req, res) => {
+  const email = req.params.email;
+  db.query("SELECT bank_codename,bank_name FROM bank_master where bank_email = ?",[email], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
