@@ -304,6 +304,52 @@ app.get("/showcodename/:email", async (req, res) => {
     }
   });
 });
+app.post("/RegisterUserForBank", (req, res) => {
+  const userBank_email = req.body.userBank_email;
+  const userBank_bankName = req.body.userBank_bankName;
+  const rank_id = '1';
+  db.query(
+    "INSERT INTO userinbank (userBank_email,userBank_bankName,rank_id) VALUES (?,?,?)",
+    [userBank_email, userBank_bankName, rank_id],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+      } else {
+        res.send("Values Inserted");
+      }
+    }
+  );
+});
+app.get("/CheckUserInBank/:email", async (req, res) => {
+  const userBank_email = req.params.email;
+  db.query("SELECT * FROM userinbank JOIN bank_master ON userinbank.userBank_bankName = bank_master.bank_name where userBank_email = ?",[userBank_email], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+app.get("/showUserInBank/:userBank_bankName", async (req, res) => {
+  const userBank_bankName = req.params.userBank_bankName;
+  db.query("SELECT * FROM userinbank JOIN user_master JOIN rank_master ON user_master.email = userinbank.userBank_email and rank_master.rank_id =userinbank.rank_id where userBank_bankName = ?",[userBank_bankName], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
 // app.post("/create", async (req,res) => {
 //     const {username, email , tel} = req.body;
 
