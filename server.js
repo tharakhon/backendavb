@@ -3,12 +3,13 @@ var bodyParser = require('body-parser')
 const app = express();
 const mysql = require("mysql");
 const cors = require("cors");
+const multer = require('multer')
 
 
 
 app.use(cors());
 app.use(express.json());
-
+app.use(express.static('public'));
 
 const db = mysql.createConnection({
   user: "root",
@@ -86,6 +87,41 @@ app.use(bodyParser.json());
 //       res.json({ status: 'ok', message: "Success" })
 //     });
 // })
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    return cb(null, "public/image")
+  },
+  filename: function (req, file, cb) {
+    return cb(null, `${Date.now()}_${file.originalname}`)
+  }
+})
+
+const upload = multer({ storage: storage })
+
+app.post('/bank_create', upload.single('bank_image'), (req, res) => {
+  const sql = "INSERT INTO bank_master (`bank_email`, `bank_codename`, `bank_telephone`, `bank_address`, `bank_name`, `bank_latitude`, `bank_longitude`, `bank_image`, `bank_bronze`, `bank_silver`, `bank_gold`, `bank_platinum`, `rank_id`) VALUES (?)";
+  const values = [
+    req.body.bank_email,
+    req.body.bank_codename,
+    req.body.bank_telephone,
+    req.body.bank_address,
+    req.body.bank_name,
+    req.body.bank_latitude,
+    req.body.bank_longitude,
+    req.file.filename,
+    req.body.bank_bronze,
+    req.body.bank_silver,
+    req.body.bank_gold,
+    req.body.bank_platinum,
+    '1',
+  ]
+
+  db.query(sql, [values], (err, result) => {
+    if (err) return res.json({ Error: "Error singup query" });
+    return res.json({ Status: "Success" });
+  })
+})
+
 app.get("/user/:email", (req, res) => {
   const email = req.params.email;
   db.query("SELECT * FROM user_master WHERE email = ?", [email], (err, result) => {
@@ -101,42 +137,42 @@ app.get("/user/:email", (req, res) => {
     }
   });
 });
-app.post("/bank_create", (req, res) => {
-  const bank_email = req.body.bank_email; // Correctly extract from req.body
-  const bank_codename = req.body.bank_codename;
-  const bank_telephone = req.body.bank_telephone;
-  const bank_name = req.body.bank_name;
-  const bank_address = req.body.bank_address;
-  const bank_latitude = req.body.bank_latitude;
-  const bank_longitude = req.body.bank_longitude;
-  const bank_image = req.body.bank_image;
-  const bank_bronze = req.body.bank_bronze;
-  const bank_silver = req.body.bank_silver;
-  const bank_gold = req.body.bank_gold;
-  const bank_platinum = req.body.bank_platinum;
-  const rank_id = '1';
+// app.post("/bank_create", (req, res) => {
+//   const bank_email = req.body.bank_email; // Correctly extract from req.body
+//   const bank_codename = req.body.bank_codename;
+//   const bank_telephone = req.body.bank_telephone;
+//   const bank_name = req.body.bank_name;
+//   const bank_address = req.body.bank_address;
+//   const bank_latitude = req.body.bank_latitude;
+//   const bank_longitude = req.body.bank_longitude;
+//   const bank_image = req.body.bank_image;
+//   const bank_bronze = req.body.bank_bronze;
+//   const bank_silver = req.body.bank_silver;
+//   const bank_gold = req.body.bank_gold;
+//   const bank_platinum = req.body.bank_platinum;
+//   const rank_id = '1';
 
-  if (!bank_email) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+//   if (!bank_email) {
+//     return res.status(400).json({ error: "Missing required fields" });
+//   }
 
-  db.query(
-    "INSERT INTO bank_master (bank_email, bank_codename, bank_telephone, bank_address, bank_name, bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver, bank_gold, bank_platinum, rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-    [
-      bank_email, bank_codename, bank_telephone, bank_address, bank_name,
-      bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver,
-      bank_gold, bank_platinum, rank_id
-    ],
-    (err, result) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ error: "Internal server error" });
-      } else {
-        res.send("Values Inserted");
-      }
-    }
-  );
-});
+//   db.query(
+//     "INSERT INTO bank_master (bank_email, bank_codename, bank_telephone, bank_address, bank_name, bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver, bank_gold, bank_platinum, rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+//     [
+//       bank_email, bank_codename, bank_telephone, bank_address, bank_name,
+//       bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver,
+//       bank_gold, bank_platinum, rank_id
+//     ],
+//     (err, result) => {
+//       if (err) {
+//         console.log(err);
+//         return res.status(500).json({ error: "Internal server error" });
+//       } else {
+//         res.send("Values Inserted");
+//       }
+//     }
+//   );
+// });
 //   app.post("/bank_create", (req,res) => {
 //     const bank_email = req.body.email;
 //     const bank_codename = '5f6d8g';
@@ -166,21 +202,44 @@ app.post("/bank_create", (req, res) => {
 //      }
 //    );
 //  });
-app.post("/bank_product", (req, res) => {
-  const bank_codename = req.body.bank_codename;
-  const product_name = req.body.product_name;
-  const product_image = req.body.product_image;
-  const product_type = req.body.product_type;
-  const product_type2 = req.body.product_type2;
-  const product_type3 = req.body.product_type3;
-  const product_type4 = req.body.product_type4;
-  const product_quantity = req.body.product_quantity;
-  const product_details = req.body.product_details;
-  const product_price = req.body.product_price;
+app.post("/bank_product", upload.single('product_image'), (req, res) => {
+  const sql = "INSERT INTO bank_product  (`bank_codename`, `product_name`, `product_image`, `product_type`, `product_type2`, `product_type3`, `product_type4`, `product_quantity`, `product_unit`, `product_details`, `product_price`) VALUES (?)";
+  const values = [
+    req.body.bank_codename,
+    req.body.product_name,
+    req.file.filename,
+    req.body.product_type,
+    req.body.product_type2,
+    req.body.product_type3,
+    req.body.product_type4,
+    req.body.product_quantity,
+    req.body.product_unit,
+    req.body.product_details,
+    req.body.product_price,
+  ]
+
+  db.query(sql, [values], (err, result) => {
+    if (err) return res.json({ Error: "Error singup query" });
+    return res.json({ Status: "Success" });
+  })
+
+});
+
+app.post("/userbank_exchange", (req, res) => {
+  const bank_name = req.body.bank_name;
+  const userbank_email = req.body.userbank_email;
+  const userbank_productname = req.body.userbank_productname;
+  const userbank_productimage = req.body.userbank_productimage;
+  const userbank_producttype1 = req.body.userbank_producttype1;
+  const userbank_productquantity = req.body.userbank_productquantity;
+  const userbank_productdetails = req.body.userbank_productdetails;
+  const userbank_unit = req.body.userbank_unit;
+  const userbank_productdate = req.body.userbank_productdate;
+
   db.query(
-    "INSERT INTO bank_product ( bank_codename,  product_name, product_image, product_type, product_type2,product_type3,product_type4,product_quantity, product_details, product_price) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO userbank_exchange (bank_name, userbank_email, userbank_productname, userbank_productimage, userbank_producttype1, userbank_productquantity,  userbank_unit,userbank_productdetails, userbank_productdate) VALUES (?,?,?,?,?,?,?,?,?)",
     [
-      bank_codename, product_name, product_image, product_type, product_type2, product_type3, product_type4, product_quantity, product_details, product_price
+      bank_name, userbank_email, userbank_productname, userbank_productimage, userbank_producttype1, userbank_productquantity, userbank_unit, userbank_productdetails, userbank_productdate
     ],
     (err, result) => {
       if (err) {
@@ -192,6 +251,53 @@ app.post("/bank_product", (req, res) => {
     }
   );
 });
+app.post("/order_request", (req, res) => {
+  const order_id = req.body.order_id;
+  const bank_name = req.body.bank_name;
+  const userbank_email = req.body.userbank_email;
+  const order_quantity = req.body.order_quantity;
+  const order_borrowDate = req.body.order_borrowDate;
+  const order_returnDate = req.body.order_returnDate;
+
+  db.query(
+    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate) VALUES (?,?,?,?,?,?)",
+    [
+      order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate
+    ],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: "Internal server error" });
+      } else {
+        res.send("Values Inserted");
+      }
+    }
+  );
+});
+
+app.post("/order_exchangeRequest", (req, res) => {
+  const orderExchange_id = req.body.orderExchange_id;
+  const bank_name = req.body.bank_name;
+  const userbank_email = req.body.userbank_email;
+  const orderExchange_quantity = req.body.orderExchange_quantity;
+  const orderExchange_borrowDate = req.body.orderExchange_borrowDate;
+
+  db.query(
+    "INSERT INTO orderexchage_request (orderExchange_id,bank_name, userbank_email,orderExchange_quantity,orderExchange_borrowDate) VALUES (?,?,?,?,?)",
+    [
+      orderExchange_id,bank_name, userbank_email,orderExchange_quantity,orderExchange_borrowDate
+    ],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: "Internal server error" });
+      } else {
+        res.send("Values Inserted");
+      }
+    }
+  );
+});
+
 app.post("/create", (req, res) => {
   const image = req.body.image;
   const email = req.body.email;
@@ -225,7 +331,7 @@ app.get("/readimage/:email", async (req, res) => {
     }
   });
 });
-app.get("/showproduct/:email",(req, res) => {
+app.get("/showproduct/:email", (req, res) => {
   const email = req.params.email;
   if (!email) {
     return res.status(400).send("Email parameter is missing.");
@@ -244,9 +350,9 @@ app.get("/showproduct/:email",(req, res) => {
   });
 });
 
-app.get("/showProductUser/:bank_name",(req, res) => {
+app.get("/showProductUser/:bank_name", (req, res) => {
   const bank_name = req.params.bank_name
-  db.query("SELECT bank_product.* FROM   bank_master JOIN bank_product ON bank_master.bank_codename = bank_product.bank_codename where bank_name = ? ",[bank_name], (err, result) => {
+  db.query("SELECT bank_product.* FROM   bank_master JOIN bank_product ON bank_master.bank_codename = bank_product.bank_codename where bank_name = ? ", [bank_name], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -259,7 +365,7 @@ app.get("/showProductUser/:bank_name",(req, res) => {
     }
   });
 });
-app.get("/showProductUser1/:id",(req, res) => {
+app.get("/showProductUser1/:id", (req, res) => {
   const product_id = req.params.id;
   db.query("SELECT bank_product.* FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename  WHERE product_id = ?", [product_id], (err, result) => {
     if (err) {
@@ -275,23 +381,23 @@ app.get("/showProductUser1/:id",(req, res) => {
   });
 });
 
-app.get("/showbank", async (req, res) => {
-  db.query("SELECT * FROM bank_master ", (err, result) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Internal Server Error");
-    } else {
-      if (result.length > 0) {
-        res.send(result);
-      } else {
-        res.send("No data found in the database.");
-      }
-    }
-  });
-});
+// app.get("/showbank", async (req, res) => {
+//   db.query("SELECT * FROM bank_master ", (err, result) => {
+//     if (err) {
+//       console.log(err);
+//       res.status(500).send("Internal Server Error");
+//     } else {
+//       if (result.length > 0) {
+//         res.send(result);
+//       } else {
+//         res.send("No data found in the database.");
+//       }
+//     }
+//   });
+// });
 app.get("/showcodename/:email", async (req, res) => {
   const email = req.params.email;
-  db.query("SELECT bank_codename,bank_name FROM bank_master where bank_email = ?",[email], (err, result) => {
+  db.query("SELECT bank_codename,bank_name FROM bank_master where bank_email = ?", [email], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -322,7 +428,7 @@ app.post("/RegisterUserForBank", (req, res) => {
 });
 app.get("/CheckUserInBank/:email", async (req, res) => {
   const userBank_email = req.params.email;
-  db.query("SELECT * FROM userinbank JOIN bank_master ON userinbank.userBank_bankName = bank_master.bank_name where userBank_email = ?",[userBank_email], (err, result) => {
+  db.query("SELECT * FROM userinbank JOIN bank_master ON userinbank.userBank_bankName = bank_master.bank_name where userBank_email = ?", [userBank_email], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -337,7 +443,35 @@ app.get("/CheckUserInBank/:email", async (req, res) => {
 });
 app.get("/showUserInBank/:userBank_bankName", async (req, res) => {
   const userBank_bankName = req.params.userBank_bankName;
-  db.query("SELECT * FROM userinbank JOIN user_master JOIN rank_master ON user_master.email = userinbank.userBank_email and rank_master.rank_id =userinbank.rank_id where userBank_bankName = ?",[userBank_bankName], (err, result) => {
+  db.query("SELECT * FROM userinbank JOIN user_master JOIN rank_master ON user_master.email = userinbank.userBank_email and rank_master.rank_id =userinbank.rank_id where userBank_bankName = ?", [userBank_bankName], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+app.get("/showcountuser", async (req, res) => {
+  db.query("SELECT *, COUNT(userinbank.userBank_id) AS member_count FROM bank_master LEFT JOIN userinbank ON bank_master.bank_name = userinbank.userBank_bankName JOIN rank_master ON bank_master.rank_id = rank_master.rank_id  GROUP BY bank_master.bank_name", (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+app.get("/showcountuser2", async (req, res) => {
+  db.query("SELECT * FROM bank_master JOIN rank_master ON bank_master.rank_id = rank_master.rank_id", (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
