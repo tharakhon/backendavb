@@ -92,7 +92,7 @@ const storage = multer.diskStorage({
     return cb(null, "public/image")
   },
   filename: function (req, file, cb) {
-    return cb(null, `${Date.now()}_${file.originalname}`)
+    return cb(null, `${req.body.bank_codename}_${file.originalname}`)
   }
 })
 
@@ -258,11 +258,12 @@ app.post("/order_request", (req, res) => {
   const order_quantity = req.body.order_quantity;
   const order_borrowDate = req.body.order_borrowDate;
   const order_returnDate = req.body.order_returnDate;
+  const order_status = "รอการตรวจสอบ";
 
   db.query(
-    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate) VALUES (?,?,?,?,?,?)",
+    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status) VALUES (?,?,?,?,?,?,?)",
     [
-      order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate
+      order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status
     ],
     (err, result) => {
       if (err) {
@@ -380,6 +381,24 @@ app.get("/showProductUser1/:id", (req, res) => {
     }
   });
 });
+app.get("/showProductUser2/:bank_name", (req, res) => {
+  const bank_name = req.params.bank_name;
+  
+  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE order_request.bank_name = ?", [bank_name], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+
+
 
 // app.get("/showbank", async (req, res) => {
 //   db.query("SELECT * FROM bank_master ", (err, result) => {
@@ -470,6 +489,63 @@ app.get("/showcountuser", async (req, res) => {
     }
   });
 });
+app.get("/notifications/:bank_name", async (req, res) => {
+  const userEmail = req.params.bank_name;
+  db.query(
+    "SELECT *,COUNT(order_request.order_id) AS notification_count FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE order_request.bank_name = ? GROUP BY bank_product.product_id;",
+    [userEmail],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        if (result.length > 0) {
+          res.send(result); // Assuming you want to send the count as a single value
+        } else {
+          res.send("No data found in the database.");
+        }
+      }
+    }
+  );
+});
+app.get("/notifications_bank/:bank_name", async (req, res) => {
+  const userEmail = req.params.bank_name;
+  db.query(
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE order_request.bank_name = ?",
+    [userEmail],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        if (result.length > 0) {
+          res.send(result); // Assuming you want to send the count as a single value
+        } else {
+          res.send("No data found in the database.");
+        }
+      }
+    }
+  );
+});
+app.get("/Inbox/:email", async (req, res) => {
+  const userEmail = req.params.email;
+  db.query(
+    "SELECT *,COUNT(order_request.order_id) AS notification_count FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE order_request.userbank_email = ? GROUP BY bank_product.product_id;",
+    [userEmail],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        if (result.length > 0) {
+          res.send(result); // Assuming you want to send the count as a single value
+        } else {
+          res.send("No data found in the database.");
+        }
+      }
+    }
+  );
+});
 app.get("/showcountuser2", async (req, res) => {
   db.query("SELECT * FROM bank_master JOIN rank_master ON bank_master.rank_id = rank_master.rank_id", (err, result) => {
     if (err) {
@@ -559,5 +635,21 @@ app.get("/showcountuser2", async (req, res) => {
 //         return res.status(500).send();
 //     }
 // })
+app.put('/updateProduct/:product_id', (req, res) => {
+  const product_id = req.params.product_id;
+  const {product_name,product_type,product_type2,product_type3,product_quantity,product_unit,product_price} = req.body;
+  console.log(req.body);
+  db.query(
+    `UPDATE bank_product SET product_name = ?, product_type = ?, product_type2 = ?, product_type3 = ?, product_quantity = ?, product_unit = ? ,product_price = ? WHERE product_id = ?`,[product_name,product_type,product_type2,product_type3,product_quantity,product_unit,product_price,product_id],(err, result) => {
+          if (err) {
+              console.error('Error updating product:', err.message);
+              return res.status(500).send(err.message);
+          }
+
+          console.log(`${product_id}`,'Product updated successfully');
+          res.json(result);
+      }
+  );
+});
 
 app.listen(5000, () => console.log('Server is running on port 5000'));
