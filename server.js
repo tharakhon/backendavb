@@ -137,71 +137,7 @@ app.get("/user/:email", (req, res) => {
     }
   });
 });
-// app.post("/bank_create", (req, res) => {
-//   const bank_email = req.body.bank_email; // Correctly extract from req.body
-//   const bank_codename = req.body.bank_codename;
-//   const bank_telephone = req.body.bank_telephone;
-//   const bank_name = req.body.bank_name;
-//   const bank_address = req.body.bank_address;
-//   const bank_latitude = req.body.bank_latitude;
-//   const bank_longitude = req.body.bank_longitude;
-//   const bank_image = req.body.bank_image;
-//   const bank_bronze = req.body.bank_bronze;
-//   const bank_silver = req.body.bank_silver;
-//   const bank_gold = req.body.bank_gold;
-//   const bank_platinum = req.body.bank_platinum;
-//   const rank_id = '1';
 
-//   if (!bank_email) {
-//     return res.status(400).json({ error: "Missing required fields" });
-//   }
-
-//   db.query(
-//     "INSERT INTO bank_master (bank_email, bank_codename, bank_telephone, bank_address, bank_name, bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver, bank_gold, bank_platinum, rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-//     [
-//       bank_email, bank_codename, bank_telephone, bank_address, bank_name,
-//       bank_latitude, bank_longitude, bank_image, bank_bronze, bank_silver,
-//       bank_gold, bank_platinum, rank_id
-//     ],
-//     (err, result) => {
-//       if (err) {
-//         console.log(err);
-//         return res.status(500).json({ error: "Internal server error" });
-//       } else {
-//         res.send("Values Inserted");
-//       }
-//     }
-//   );
-// });
-//   app.post("/bank_create", (req,res) => {
-//     const bank_email = req.body.email;
-//     const bank_codename = '5f6d8g';
-//     const bank_telephone = req.body.tel;
-//     const bank_name = req.body.profile;
-//     const bank_address = req.body.address;
-//     const bank_latitude = req.body.lat;
-//     const bank_longitude = req.body.long;
-//     const bank_image = req.body.image;
-//     const bank_bronze = req.body.medals1;
-//     const bank_silver = req.body.medals2;
-//     const bank_gold = req.body.medals3;
-//     const bank_platinum = req.body.medals4;
-//     const rank_id = '1';
-//     if (!bank_email ) {
-//       return res.status(400).json({ error: "Missing required fields" });
-//     }
-//     db.query(
-//       "INSERT INTO bank_master (bank_email,bank_codename , bank_telephone,bank_address,bank_name,bank_latitude,bank_longitude,bank_image,bank_bronze,bank_silver,bank_gold,bank_platinum,rank_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-//       [bank_email,bank_codename , bank_telephone,bank_address,bank_name,bank_latitude , bank_longitude,bank_image,bank_bronze,bank_silver,bank_gold,bank_platinum,rank_id],
-//       (err, result) => {
-//        if (err) {
-//          console.log(err);
-//        } else {
-//          res.send("Values Inserted");
-//        }
-//      }
-//    );
-//  });
 app.post("/bank_product", upload.single('product_image'), (req, res) => {
   const sql = "INSERT INTO bank_product  (`bank_codename`, `product_name`, `product_image`, `product_type`, `product_type2`, `product_type3`, `product_type4`, `product_quantity`, `product_unit`, `product_details`, `product_price`) VALUES (?)";
   const values = [
@@ -226,7 +162,7 @@ app.post("/bank_product", upload.single('product_image'), (req, res) => {
 });
 
 app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res) => {
-  const sql = "INSERT INTO userbank_exchange  (`orderExchange_id`,`bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`,`userbank_status`) VALUES (?)";
+  const sql = "INSERT INTO userbank_exchange  (`orderExchange_id`,`bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`,`userbank_status`,`order_exchange`) VALUES (?)";
   const values = [
     req.body.orderExchange_id,
     req.body.bank_name,
@@ -237,7 +173,8 @@ app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res
     req.body.userbank_productquantity,
     req.body.userbank_productdetails,
     req.body.userbank_unit,
-    'รอการตรวจสอบ'
+    'รอการตรวจสอบ',
+    'รายการเพื่อแลกเปลี่ยน'
   ]
   db.query(sql, [values], (err, result) => {
     if (err) return res.json({ Error: "Error singup query" });
@@ -252,11 +189,12 @@ app.post("/order_request", (req, res) => {
   const order_borrowDate = req.body.order_borrowDate;
   const order_returnDate = req.body.order_returnDate;
   const order_status = "รอการตรวจสอบ";
+  const order_rental = "รายการเพื่อเช่าหรือยืม";
 
   db.query(
-    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status) VALUES (?,?,?,?,?,?,?)",
+    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status,order_rental) VALUES (?,?,?,?,?,?,?,?)",
     [
-      order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status
+      order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status,order_rental
     ],
     (err, result) => {
       if (err) {
@@ -500,7 +438,7 @@ app.get("/showcountuser", async (req, res) => {
 app.get("/notifications/:bank_name", async (req, res) => {
   const userEmail = req.params.bank_name;
   db.query(
-    "SELECT *,(SELECT COUNT(order_request.order_id) FROM order_request WHERE order_request.order_id = bank_product.product_id) + (SELECT COUNT(orderexchage_request.orderExchange_id) FROM orderexchage_request WHERE orderexchage_request.orderExchange_id = bank_product.product_id) AS combined_count FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename LEFT JOIN order_request ON order_request.order_id = bank_product.product_id LEFT JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id LEFT JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = order_request.userbank_email OR user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_name = ? GROUP BY bank_product.product_id;",
+    "SELECT *, COUNT(order_request.order_id) AS order_count,COUNT(userbank_exchange.orderExchange_id) AS order_exchange_count,(SELECT COUNT(order_request.order_id) FROM order_request WHERE order_request.order_id = bank_product.product_id AND order_request.order_status = 'รอการตรวจสอบ') + (SELECT COUNT(userbank_exchange.orderExchange_id) FROM userbank_exchange WHERE userbank_exchange.orderExchange_id = bank_product.product_id AND userbank_exchange.userbank_status = 'รอการตรวจสอบ') AS combined_count FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename LEFT JOIN order_request ON order_request.order_id = bank_product.product_id AND order_request.order_status = 'รอการตรวจสอบ' LEFT JOIN userbank_exchange ON userbank_exchange.orderExchange_id = bank_product.product_id AND userbank_exchange.userbank_status = 'รอการตรวจสอบ' LEFT JOIN orderexchage_request ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = order_request.userbank_email OR user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_name = ? GROUP BY bank_product.product_id;",
     [userEmail],
     (err, result) => {
       if (err) {
