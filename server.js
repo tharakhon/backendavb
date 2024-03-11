@@ -207,6 +207,33 @@ app.post("/order_request", (req, res) => {
   );
 });
 
+app.post("/order_sale", (req, res) => {
+  const order_porduct_id = req.body.order_porduct_id;
+  const order_sale_bankname = req.body.order_sale_bankname;
+  const userbank_order_sale = req.body.userbank_order_sale;
+  const order_product_quantity = req.body.order_product_quantity;
+  const order_product_unit = req.body.order_product_unit;
+  const order_product_date = req.body.order_product_date;
+  const order_product_price = req.body.order_product_price;
+  const order_product_status = "รอการตรวจสอบ";
+  const order_sale = "รายการเพื่อการซื้อขาย";
+
+  db.query(
+    "INSERT INTO order_sale (order_porduct_id, order_sale_bankname,userbank_order_sale,order_product_quantity,order_product_unit, order_product_date,order_product_price,order_product_status,order_sale) VALUES (?,?,?,?,?,?,?,?,?)",
+    [
+      order_porduct_id,order_sale_bankname, userbank_order_sale,order_product_quantity,order_product_unit,order_product_date, order_product_price,order_product_status,order_sale
+    ],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: "Internal server error" });
+      } else {
+        res.send("Values Inserted");
+      }
+    }
+  );
+});
+
 app.post("/order_exchangeRequest", (req, res) => {
   const orderExchange_id = req.body.orderExchange_id;
   const bank_name = req.body.bank_name;
@@ -248,6 +275,48 @@ app.post("/create", (req, res) => {
     }
   );
 });
+
+app.post("/bookmark", (req, res) => {
+  const bookmark_email =  req.body.bookmark_email;
+  const bookmark_bankname = req.body.bookmark_bankname;
+  const bookmark_members = req.body.bookmark_members;
+  const bookmark_codename = req.body.bookmark_codename;
+  const bookmark_image = req.body.bookmark_image;
+  const bookmark_lat = req.body.bookmark_lat;
+  const bookmark_lon = req.body.bookmark_lon;
+  const bookmark_rank = req.body.bookmark_rank;
+  const bookmark_rating = '5';
+  db.query(
+    "INSERT INTO bookmark (bookmark_email,bookmark_bankname , bookmark_members, bookmark_codename,bookmark_image,bookmark_lat,bookmark_lon,bookmark_rank,bookmark_rating) VALUES (?,?,?,?,?,?,?,?,?)",
+    [bookmark_email,bookmark_bankname , bookmark_members, bookmark_codename,bookmark_image,bookmark_lat,bookmark_lon,bookmark_rank,bookmark_rating],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+      } else {
+        res.send("Values Inserted");
+      }
+    }
+  );
+});
+
+app.delete("/deletebookmark", (req, res) => {
+  const bookmark_email = req.body.bookmark_email;
+  const bookmark_bankname = req.body.bookmark_bankname;
+
+  db.query(
+    "DELETE FROM bookmark WHERE bookmark_email = ? AND bookmark_bankname = ?",
+    [bookmark_email, bookmark_bankname],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error deleting bookmark");
+      } else {
+        res.send("Bookmark deleted successfully");
+      }
+    }
+  );
+});
+
 app.get("/readimage/:email", async (req, res) => {
   const email = req.params.email;
   db.query("SELECT image FROM user_master WHERE email = ?", [email], (err, result) => {
@@ -263,6 +332,23 @@ app.get("/readimage/:email", async (req, res) => {
     }
   });
 });
+
+app.get("/bookmark/:bookmark_email", async (req, res) => {
+  const bookmark_email = req.params.bookmark_email;
+  db.query("SELECT * FROM bookmark WHERE bookmark_email = ?", [bookmark_email], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+
 app.get("/showproduct/:email", (req, res) => {
   const email = req.params.email;
   if (!email) {
@@ -345,6 +431,21 @@ app.get("/showProductUser3/:bank_name", (req, res) => {
   });
 });
 
+app.get("/showProductUser4/:order_sale_bankname", (req, res) => {
+  const order_sale_bankname = req.params.order_sale_bankname;
+  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_sale ON order_sale.order_porduct_id = bank_product.product_id JOIN user_master ON user_master.email = order_sale.userbank_order_sale  WHERE order_sale.order_sale_bankname = ?", [order_sale_bankname], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
 
 // app.get("/showbank", async (req, res) => {
 //   db.query("SELECT * FROM bank_master ", (err, result) => {
@@ -438,7 +539,7 @@ app.get("/showcountuser", async (req, res) => {
 app.get("/notifications/:bank_name", async (req, res) => {
   const userEmail = req.params.bank_name;
   db.query(
-    "SELECT *, COUNT(order_request.order_id) AS order_count,COUNT(userbank_exchange.orderExchange_id) AS order_exchange_count,(SELECT COUNT(order_request.order_id) FROM order_request WHERE order_request.order_id = bank_product.product_id AND order_request.order_status = 'รอการตรวจสอบ') + (SELECT COUNT(userbank_exchange.orderExchange_id) FROM userbank_exchange WHERE userbank_exchange.orderExchange_id = bank_product.product_id AND userbank_exchange.userbank_status = 'รอการตรวจสอบ') AS combined_count FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename LEFT JOIN order_request ON order_request.order_id = bank_product.product_id AND order_request.order_status = 'รอการตรวจสอบ' LEFT JOIN userbank_exchange ON userbank_exchange.orderExchange_id = bank_product.product_id AND userbank_exchange.userbank_status = 'รอการตรวจสอบ' LEFT JOIN orderexchage_request ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = order_request.userbank_email OR user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_name = ? GROUP BY bank_product.product_id;",
+    "SELECT *, COUNT(order_request.order_id) AS order_count,COUNT(userbank_exchange.orderExchange_id) AS order_exchange_count,COUNT(order_sale.order_porduct_id) AS order_sale_count,(SELECT COUNT(order_request.order_id) FROM order_request WHERE order_request.order_id = bank_product.product_id AND order_request.order_status = 'รอการตรวจสอบ') + (SELECT COUNT(userbank_exchange.orderExchange_id) FROM userbank_exchange WHERE userbank_exchange.orderExchange_id = bank_product.product_id AND userbank_exchange.userbank_status = 'รอการตรวจสอบ') + (SELECT COUNT(order_sale.order_porduct_id) FROM order_sale WHERE order_sale.order_porduct_id = bank_product.product_id AND order_sale.order_product_status = 'รอการตรวจสอบ') AS combined_count FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename LEFT JOIN order_request ON order_request.order_id = bank_product.product_id AND order_request.order_status = 'รอการตรวจสอบ' LEFT JOIN userbank_exchange ON userbank_exchange.orderExchange_id = bank_product.product_id AND userbank_exchange.userbank_status = 'รอการตรวจสอบ' LEFT JOIN orderexchage_request ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id LEFT JOIN order_sale ON order_sale.order_porduct_id = bank_product.product_id AND order_sale.order_product_status = 'รอการตรวจสอบ' JOIN user_master ON user_master.email = order_request.userbank_email OR user_master.email = orderexchage_request.userbank_email OR user_master.email = order_sale.userbank_order_sale WHERE bank_master.bank_name = ? GROUP BY bank_product.product_id;",
     [userEmail],
     (err, result) => {
       if (err) {
@@ -519,6 +620,26 @@ app.get("/Inbox1/:email", async (req, res) => {
   const userEmail = req.params.email;
   db.query(
     "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_email= ? GROUP BY bank_product.product_id;",
+    [userEmail],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        if (result.length > 0) {
+          res.send(result); // Assuming you want to send the count as a single value
+        } else {
+          res.send("No data found in the database.");
+        }
+      }
+    }
+  );
+});
+
+app.get("/Inbox2/:email", async (req, res) => {
+  const userEmail = req.params.email;
+  db.query(
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_sale ON order_sale.order_porduct_id = bank_product.product_id JOIN user_master ON user_master.email = order_sale.userbank_order_sale WHERE order_sale.userbank_order_sale= ? GROUP BY bank_product.product_id;",
     [userEmail],
     (err, result) => {
       if (err) {
@@ -662,6 +783,22 @@ app.put('/updateStatus1/:orderExchange_id', (req, res) => {
   console.log(req.body);
   db.query(
     `UPDATE userbank_exchange SET userbank_status = ? WHERE orderExchange_id = ?`,[userbank_status,orderExchange_id],(err, result) => {
+          if (err) {
+              console.error('Error updating product:', err.message);
+              return res.status(500).send(err.message);
+          }
+
+          console.log('Product updated successfully');
+          res.json(result);
+      }
+  );
+});
+app.put('/updateStatus2/:order_porduct_id', (req, res) => {
+  const order_porduct_id = req.params.order_porduct_id;
+  const order_product_status = req.body.order_product_status;
+  console.log(req.body);
+  db.query(
+    `UPDATE order_sale SET order_product_status = ? WHERE order_porduct_id = ?`,[order_product_status,order_porduct_id],(err, result) => {
           if (err) {
               console.error('Error updating product:', err.message);
               return res.status(500).send(err.message);
