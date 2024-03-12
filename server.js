@@ -596,6 +596,26 @@ app.get("/notifications_bank1/:bank_name", async (req, res) => {
   );
 });
 
+app.get("/notifications_bank2/:bank_name", async (req, res) => {
+  const userbank_name = req.params.bank_name;
+  db.query(
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_sale ON order_sale.order_porduct_id = bank_product.product_id JOIN user_master ON user_master.email = order_sale.userbank_order_sale WHERE bank_master.bank_name= ?",
+    [userbank_name],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Internal Server Error");
+      } else {
+        if (result.length > 0) {
+          res.send(result); // Assuming you want to send the count as a single value
+        } else {
+          res.send("No data found in the database.");
+        }
+      }
+    }
+  );
+});
+
 app.get("/Inbox/:email", async (req, res) => {
   const userEmail = req.params.email;
   db.query(
