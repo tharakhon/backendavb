@@ -99,28 +99,42 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage })
 
 app.post('/bank_create', upload.single('bank_image'), (req, res) => {
-  const sql = "INSERT INTO bank_master (`bank_email`, `bank_codename`, `bank_telephone`, `bank_address`, `bank_name`, `bank_latitude`, `bank_longitude`, `bank_image`, `bank_bronze`, `bank_silver`, `bank_gold`, `bank_platinum`, `rank_id`) VALUES (?)";
-  const values = [
-    req.body.bank_email,
-    req.body.bank_codename,
-    req.body.bank_telephone,
-    req.body.bank_address,
-    req.body.bank_name,
-    req.body.bank_latitude,
-    req.body.bank_longitude,
-    req.file.filename,
-    req.body.bank_bronze,
-    req.body.bank_silver,
-    req.body.bank_gold,
-    req.body.bank_platinum,
-    '1',
-  ]
+  // ดำเนินการตรวจสอบข้อมูลซ้ำก่อนเพิ่มข้อมูล
+  const checkDuplicateQuery = "SELECT * FROM bank_master WHERE bank_codename = ? OR bank_name = ? OR bank_email = ?";
+  const checkDuplicateValues = [req.body.bank_codename, req.body.bank_name,req.body.bank_email];
 
-  db.query(sql, [values], (err, result) => {
-    if (err) return res.json({ Error: "Error singup query" });
-    return res.json({ Status: "Success" });
-  })
-})
+  db.query(checkDuplicateQuery, checkDuplicateValues, (error, results) => {
+    if (error) {
+      return res.status(500).json({ Error: "Error checking for duplicate bank information" });
+    }
+
+    if (results.length > 0) {
+      return res.status(400).json({ Error: "Bank codename or bank name already exists. Please choose another one." });
+    }
+
+    const sql = "INSERT INTO bank_master (`bank_email`, `bank_codename`, `bank_telephone`, `bank_address`, `bank_name`, `bank_latitude`, `bank_longitude`, `bank_image`, `bank_bronze`, `bank_silver`, `bank_gold`, `bank_platinum`, `rank_id`) VALUES (?)";
+    const values = [
+      req.body.bank_email,
+      req.body.bank_codename,
+      req.body.bank_telephone,
+      req.body.bank_address,
+      req.body.bank_name,
+      req.body.bank_latitude,
+      req.body.bank_longitude,
+      req.file.filename,
+      req.body.bank_bronze,
+      req.body.bank_silver,
+      req.body.bank_gold,
+      req.body.bank_platinum,
+      '1',
+    ];
+
+    db.query(sql, [values], (err, result) => {
+      if (err) return res.status(500).json({ Error: "Error inserting bank data into database" });
+      return res.status(200).json({ Status: "Success" });
+    });
+  });
+});
 
 app.get("/user/:email", (req, res) => {
   const email = req.params.email;
@@ -162,7 +176,7 @@ app.post("/bank_product", upload.single('product_image'), (req, res) => {
 });
 
 app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res) => {
-  const sql = "INSERT INTO userbank_exchange  (`orderExchange_id`,`bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`,`userbank_status`,`order_exchange`,`order_exchange_pickup`) VALUES (?)";
+  const sql = "INSERT INTO userbank_exchange  (`orderExchange_id`,`bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`,`userbank_status`,`order_exchange`,`order_exchange_pickup`,`customer_status_exchange`) VALUES (?)";
   const values = [
     req.body.orderExchange_id,
     req.body.bank_name,
@@ -175,7 +189,8 @@ app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res
     req.body.userbank_unit,
     'รอการตรวจสอบ',
     'รายการเพื่อแลกเปลี่ยน',
-    'รอการรีวิวทรัพยากร'
+    'รอการรีวิวทรัพยากร',
+    'รอธนาคารรีวิวผู้ใช้'
   ]
   db.query(sql, [values], (err, result) => {
     if (err) return res.json({ Error: "Error singup query" });
@@ -192,11 +207,12 @@ app.post("/order_request", (req, res) => {
   const order_status = "รอการตรวจสอบ";
   const order_rental = "รายการเพื่อเช่าหรือยืม";
   const order_rental_pickup = "รอการรีวิวทรัพยากร";
-
+  const customer_status = "รอธนาคารรีวิวผู้ใช้ ";
+ 
   db.query(
-    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status,order_rental,order_rental_pickup) VALUES (?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status,order_rental,order_rental_pickup,customer_status) VALUES (?,?,?,?,?,?,?,?,?,?)",
     [
-      order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status,order_rental,order_rental_pickup
+      order_id, bank_name, userbank_email, order_quantity, order_borrowDate, order_returnDate, order_status, order_rental, order_rental_pickup,customer_status
     ],
     (err, result) => {
       if (err) {
@@ -220,10 +236,11 @@ app.post("/order_sale", (req, res) => {
   const order_product_status = "รอการตรวจสอบ";
   const order_sale = "รายการเพื่อการซื้อขาย";
   const order_sale_pickup = "รอการรีวิวทรัพยากร";
+  const customer_status_sale = "รอธนาคารรีวิวผู้ใช้";
   db.query(
-    "INSERT INTO order_sale (order_product_id, order_sale_bankname,userbank_order_sale,order_product_quantity,order_product_unit, order_product_date,order_product_price,order_product_status,order_sale,order_sale_pickup) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO order_sale (order_product_id, order_sale_bankname,userbank_order_sale,order_product_quantity,order_product_unit, order_product_date,order_product_price,order_product_status,order_sale,order_sale_pickup,customer_status_sale) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
     [
-      order_product_id,order_sale_bankname, userbank_order_sale,order_product_quantity,order_product_unit,order_product_date, order_product_price,order_product_status,order_sale,order_sale_pickup
+      order_product_id, order_sale_bankname, userbank_order_sale, order_product_quantity, order_product_unit, order_product_date, order_product_price, order_product_status, order_sale, order_sale_pickup,customer_status_sale
     ],
     (err, result) => {
       if (err) {
@@ -246,7 +263,7 @@ app.post("/order_exchangeRequest", (req, res) => {
   db.query(
     "INSERT INTO orderexchage_request (orderExchange_id,bank_name, userbank_email,orderExchange_quantity,orderExchange_borrowDate) VALUES (?,?,?,?,?)",
     [
-      orderExchange_id,bank_name, userbank_email,orderExchange_quantity,orderExchange_borrowDate
+      orderExchange_id, bank_name, userbank_email, orderExchange_quantity, orderExchange_borrowDate
     ],
     (err, result) => {
       if (err) {
@@ -279,7 +296,7 @@ app.post("/create", (req, res) => {
 });
 
 app.post("/bookmark", (req, res) => {
-  const bookmark_email =  req.body.bookmark_email;
+  const bookmark_email = req.body.bookmark_email;
   const bookmark_bankname = req.body.bookmark_bankname;
   const bookmark_members = req.body.bookmark_members;
   const bookmark_codename = req.body.bookmark_codename;
@@ -290,7 +307,7 @@ app.post("/bookmark", (req, res) => {
   const bookmark_rating = req.body.bookmark_rating;
   db.query(
     "INSERT INTO bookmark (bookmark_email,bookmark_bankname , bookmark_members, bookmark_codename,bookmark_image,bookmark_lat,bookmark_lon,bookmark_rank,bookmark_rating) VALUES (?,?,?,?,?,?,?,?,?)",
-    [bookmark_email,bookmark_bankname , bookmark_members, bookmark_codename,bookmark_image,bookmark_lat,bookmark_lon,bookmark_rank,bookmark_rating],
+    [bookmark_email, bookmark_bankname, bookmark_members, bookmark_codename, bookmark_image, bookmark_lat, bookmark_lon, bookmark_rank, bookmark_rating],
     (err, result) => {
       if (err) {
         console.log(err);
@@ -321,7 +338,7 @@ app.delete("/deletebookmark", (req, res) => {
 
 app.get("/readimage/:email", async (req, res) => {
   const email = req.params.email;
-  db.query("SELECT image FROM user_master WHERE email = ?", [email], (err, result) => {
+  db.query("SELECT * FROM user_master WHERE email = ?", [email], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -402,7 +419,7 @@ app.get("/showProductUser1/:id", (req, res) => {
 });
 app.get("/showProductUser2/:bank_name", (req, res) => {
   const bank_name = req.params.bank_name;
-  
+
   db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE order_request.bank_name = ?", [bank_name], (err, result) => {
     if (err) {
       console.log(err);
@@ -466,7 +483,7 @@ app.get("/showProductUser5/:order_request_id", (req, res) => {
 });
 
 app.get("/showProductUser6/:exchange_id", (req, res) => {
-  const exchange_id  = req.params.exchange_id;
+  const exchange_id = req.params.exchange_id;
   db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id WHERE exchange_id  = ?", [exchange_id], (err, result) => {
     if (err) {
       console.log(err);
@@ -668,7 +685,7 @@ app.get("/notifications_bank2/:bank_name", async (req, res) => {
 app.get("/Inbox/:email", async (req, res) => {
   const userEmail = req.params.email;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE user_master.email = ? ",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id  JOIN user_master ON user_master.email = order_request.userbank_email WHERE user_master.email = ? ",
     [userEmail],
     (err, result) => {
       if (err) {
@@ -688,7 +705,7 @@ app.get("/Inbox/:email", async (req, res) => {
 app.get("/Inbox1/:email", async (req, res) => {
   const userEmail = req.params.email;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE user_master.email= ? ",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id  JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE user_master.email= ? ",
     [userEmail],
     (err, result) => {
       if (err) {
@@ -740,7 +757,7 @@ app.get("/showcountuser2", async (req, res) => {
   });
 });
 
-app.post("/Review", upload.single('bank_review_image'),(req,res)=>{ 
+app.post("/Review", upload.single('bank_review_image'), (req, res) => {
   const sql = "INSERT INTO bank_review (`user_email`, `bank_codename`, `rating`, `detail`, `product_id`,`bank_review_image`) VALUES (?)";
   const values = [
     req.body.user_email,
@@ -759,7 +776,7 @@ app.post("/Review", upload.single('bank_review_image'),(req,res)=>{
 
 app.get("/showReview/:product_id", async (req, res) => {
   const product_id = req.params.product_id;
-  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN bank_review ON bank_review.product_id = bank_product.product_id JOIN user_master ON bank_review.user_email = user_master.email where bank_product.product_id = ?",[product_id], (err, result) => {
+  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN bank_review ON bank_review.product_id = bank_product.product_id JOIN user_master ON bank_review.user_email = user_master.email where bank_product.product_id = ?", [product_id], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -773,29 +790,48 @@ app.get("/showReview/:product_id", async (req, res) => {
   });
 });
 
+app.post("/bank_product", upload.single('product_image'), (req, res) => {
+  const sql = "INSERT INTO bank_product  (`bank_codename`, `product_name`, `product_image`, `product_type`, `product_type2`, `product_type3`, `product_type4`, `product_quantity`, `product_unit`, `product_details`, `product_price`) VALUES (?)";
+  const values = [
+    req.body.bank_codename,
+    req.body.product_name,
+    req.file.filename,
+    req.body.product_type,
+    req.body.product_type2,
+    req.body.product_type3,
+    req.body.product_type4,
+    req.body.product_quantity,
+    req.body.product_unit,
+    req.body.product_details,
+    req.body.product_price,
+  ]
 
-app.post("/Reviewcustom",(req,res) => {
-  const user_name = "ฮอลคูล"
-  const bank_name= "AVB 2";
-  const product_name = "จอบ";
-  const product_id = "33";
-  const detail = req.body.detail;
-  const rating = req.body.rating;
-  
-  db.query("INSERT INTO review_customer(user_name,bank_name,product_name,product_id,detail,rating)VALUE(?,?,?,?,?,?)",
-  [user_name,bank_name,product_name,product_id,detail,rating],
-  (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      res.send("Values Inserted");
-    }
-  });
+  db.query(sql, [values], (err, result) => {
+    if (err) return res.json({ Error: "Error singup query" });
+    return res.json({ Status: "Success" });
+  })
+
+});
+app.post("/Reviewcustom", upload.single('customer_review_image'), (req, res) => {
+  const sql = "INSERT INTO review_customer  (`user_email`, `bank_codename`, `product_id`, `detail`, `customer_review_image`, `rating`) VALUES (?)";
+  const values = [
+    req.body.user_email,
+    req.body.bank_codename,
+    req.body.product_id,
+    req.body.detail,
+    req.file.filename,
+    req.body.rating,
+
+  ]
+  db.query(sql, [values], (err, result) => {
+    if (err) return res.json({ Error: "Error singup query" });
+    return res.json({ Status: "Success" });
+  })
 });
 
-app.get("/Showreviewcustom/:bank_name",async(req,res)=>{
-  const bank_name = req.params.bank_name;
-  db.query("SELECT * FROM review_customer JOIN bank_master JOIN bank_product ON review_customer.bank_name=bank_master.bank_name and bank_product.product_id=review_customer.product_id where review_customer.bank_name = ?",[bank_name], (err, result) => {
+app.get("/Showreviewcustom/:user_email", async (req, res) => {
+  const user_email = req.params.user_email;
+  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN review_customer ON review_customer.product_id  = bank_product.product_id  where review_customer.user_email = ?", [user_email], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -885,18 +921,18 @@ app.get("/Showreviewcustom/:bank_name",async(req,res)=>{
 // })
 app.put('/updateProduct/:product_id', (req, res) => {
   const product_id = req.params.product_id;
-  const {product_name,product_type,product_type2,product_type3,product_quantity,product_unit,product_price} = req.body;
+  const { product_name, product_type, product_type2, product_type3, product_quantity, product_unit, product_price } = req.body;
   console.log(req.body);
   db.query(
-    `UPDATE bank_product SET product_name = ?, product_type = ?, product_type2 = ?, product_type3 = ?, product_quantity = ?, product_unit = ? ,product_price = ? WHERE product_id = ?`,[product_name,product_type,product_type2,product_type3,product_quantity,product_unit,product_price,product_id],(err, result) => {
-          if (err) {
-              console.error('Error updating product:', err.message);
-              return res.status(500).send(err.message);
-          }
-
-          console.log('Product updated successfully');
-          res.json(result);
+    `UPDATE bank_product SET product_name = ?, product_type = ?, product_type2 = ?, product_type3 = ?, product_quantity = ?, product_unit = ? ,product_price = ? WHERE product_id = ?`, [product_name, product_type, product_type2, product_type3, product_quantity, product_unit, product_price, product_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
       }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
   );
 });
 app.put('/updateStatus/:order_request_id', (req, res) => {
@@ -904,15 +940,15 @@ app.put('/updateStatus/:order_request_id', (req, res) => {
   const order_status = req.body.order_status;
   console.log(req.body);
   db.query(
-    `UPDATE order_request SET order_status = ? WHERE order_request_id = ?`,[order_status,order_request_id],(err, result) => {
-          if (err) {
-              console.error('Error updating product:', err.message);
-              return res.status(500).send(err.message);
-          }
-
-          console.log('Product updated successfully');
-          res.json(result);
+    `UPDATE order_request SET order_status = ? WHERE order_request_id = ?`, [order_status, order_request_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
       }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
   );
 });
 app.put('/updateStatus1/:exchange_id', (req, res) => {
@@ -920,30 +956,30 @@ app.put('/updateStatus1/:exchange_id', (req, res) => {
   const userbank_status = req.body.userbank_status;
   console.log(req.body);
   db.query(
-    `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`,[userbank_status,exchange_id],(err, result) => {
-          if (err) {
-              console.error('Error updating product:', err.message);
-              return res.status(500).send(err.message);
-          }
-
-          console.log('Product updated successfully');
-          res.json(result);
+    `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`, [userbank_status, exchange_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
       }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
   );
 });
 app.put('/updateStatus2/:order_sale_id', (req, res) => {
   const order_sale_id = req.params.order_sale_id;
   const order_product_status = req.body.order_product_status;
   db.query(
-    `UPDATE order_sale SET order_product_status = ? WHERE order_sale_id = ?`,[order_product_status,order_sale_id],(err, result) => {
-          if (err) {
-              console.error('Error updating product:', err.message);
-              return res.status(500).send(err.message);
-          }
-
-          console.log('Product updated successfully');
-          res.json(result);
+    `UPDATE order_sale SET order_product_status = ? WHERE order_sale_id = ?`, [order_product_status, order_sale_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
       }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
   );
 });
 
@@ -952,31 +988,31 @@ app.put('/updateStatusSalePickup/:order_sale_id', (req, res) => {
   const order_sale_pickup = req.body.order_sale_pickup;
 
   db.query(
-    `UPDATE order_sale SET order_sale_pickup = ? WHERE order_sale_id = ?`,[order_sale_pickup,order_sale_id],(err, result) => {
-          if (err) {
-              console.error('Error updating product:', err.message);
-              return res.status(500).send(err.message);
-          }
-
-          console.log('Product updated successfully');
-          res.json(result);
+    `UPDATE order_sale SET order_sale_pickup = ? WHERE order_sale_id = ?`, [order_sale_pickup, order_sale_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
       }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
   );
 });
 
 app.put('/updateStatusExchagePickup/:exchange_id', (req, res) => {
-  const exchange_id  = req.params.exchange_id ;
+  const exchange_id = req.params.exchange_id;
   const order_exchange_pickup = req.body.order_exchange_pickup;
   db.query(
-    `UPDATE userbank_exchange SET order_exchange_pickup = ? WHERE exchange_id  = ?`,[order_exchange_pickup,exchange_id],(err, result) => {
-          if (err) {
-              console.error('Error updating product:', err.message);
-              return res.status(500).send(err.message);
-          }
-
-          console.log('Product updated successfully');
-          res.json(result);
+    `UPDATE userbank_exchange SET order_exchange_pickup = ? WHERE exchange_id  = ?`, [order_exchange_pickup, exchange_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
       }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
   );
 });
 
@@ -984,17 +1020,65 @@ app.put('/updateStatusRentalPickup/:order_request_id', (req, res) => {
   const order_request_id = req.params.order_request_id;
   const order_rental_pickup = req.body.order_rental_pickup;
   db.query(
-    `UPDATE order_request SET order_rental_pickup = ? WHERE order_request_id = ?`,[order_rental_pickup,order_request_id],(err, result) => {
-          if (err) {
-              console.error('Error updating product:', err.message);
-              return res.status(500).send(err.message);
-          }
-
-          console.log('Product updated successfully');
-          res.json(result);
+    `UPDATE order_request SET order_rental_pickup = ? WHERE order_request_id = ?`, [order_rental_pickup, order_request_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
       }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
   );
 });
 
+app.put('/updateStatusSaleCustomer/:order_sale_id', (req, res) => {
+  const order_sale_id = req.params.order_sale_id;
+  const customer_status_sale = req.body.customer_status_sale;
+
+  db.query(
+    `UPDATE order_sale SET customer_status_sale = ? WHERE order_sale_id = ?`, [customer_status_sale, order_sale_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
+
+app.put('/updateStatusExchageCustomer/:exchange_id', (req, res) => {
+  const exchange_id = req.params.exchange_id;
+  const customer_status_exchange = req.body.customer_status_exchange;
+  db.query(
+    `UPDATE userbank_exchange SET customer_status_exchange = ? WHERE exchange_id  = ?`, [customer_status_exchange, exchange_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
+
+app.put('/updateStatusRentalCustomer/:order_request_id', (req, res) => {
+  const order_request_id = req.params.order_request_id;
+  const customer_status = req.body.customer_status;
+  db.query(
+    `UPDATE order_request SET customer_status = ? WHERE order_request_id = ?`, [customer_status, order_request_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
 
 app.listen(5000, () => console.log('Server is running on port 5000'));
