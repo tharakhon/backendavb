@@ -176,7 +176,7 @@ app.post("/bank_product", upload.single('product_image'), (req, res) => {
 });
 
 app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res) => {
-  const sql = "INSERT INTO userbank_exchange  (`orderExchange_id`,`bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`,`userbank_status`,`order_exchange`,`order_exchange_pickup`,`customer_status_exchange`) VALUES (?)";
+  const sql = "INSERT INTO userbank_exchange  (`orderExchange_id`,`bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`,`userbank_status`,`userbank_status_getproduct`,`order_exchange`,`order_exchange_pickup`,`customer_status_exchange`) VALUES (?)";
   const values = [
     req.body.orderExchange_id,
     req.body.bank_name,
@@ -188,6 +188,7 @@ app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res
     req.body.userbank_productdetails,
     req.body.userbank_unit,
     'รอการตรวจสอบ',
+    'ยังไม่ได้มารับทรัพยากร',
     'รายการเพื่อแลกเปลี่ยน',
     'รอการรีวิวทรัพยากร',
     'รอธนาคารรีวิวผู้ใช้'
@@ -205,14 +206,15 @@ app.post("/order_request", (req, res) => {
   const order_borrowDate = req.body.order_borrowDate;
   const order_returnDate = req.body.order_returnDate;
   const order_status = "รอการตรวจสอบ";
+  const order_status_getproduct = "ยังไม่ได้มารับทรัพยากร";
   const order_rental = "รายการเพื่อเช่าหรือยืม";
   const order_rental_pickup = "รอการรีวิวทรัพยากร";
   const customer_status = "รอธนาคารรีวิวผู้ใช้ ";
  
   db.query(
-    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status,order_rental,order_rental_pickup,customer_status) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO order_request (order_id,bank_name, userbank_email,order_quantity,order_borrowDate, order_returnDate,order_status,order_status_getproduct,order_rental,order_rental_pickup,customer_status) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
     [
-      order_id, bank_name, userbank_email, order_quantity, order_borrowDate, order_returnDate, order_status, order_rental, order_rental_pickup,customer_status
+      order_id, bank_name, userbank_email, order_quantity, order_borrowDate, order_returnDate, order_status,order_status_getproduct, order_rental, order_rental_pickup,customer_status
     ],
     (err, result) => {
       if (err) {
@@ -234,13 +236,14 @@ app.post("/order_sale", (req, res) => {
   const order_product_date = req.body.order_product_date;
   const order_product_price = req.body.order_product_price;
   const order_product_status = "รอการตรวจสอบ";
+  const order_product_getproduct = "ยังไม่ได้มารับทรัพยากร";
   const order_sale = "รายการเพื่อการซื้อขาย";
   const order_sale_pickup = "รอการรีวิวทรัพยากร";
   const customer_status_sale = "รอธนาคารรีวิวผู้ใช้";
   db.query(
-    "INSERT INTO order_sale (order_product_id, order_sale_bankname,userbank_order_sale,order_product_quantity,order_product_unit, order_product_date,order_product_price,order_product_status,order_sale,order_sale_pickup,customer_status_sale) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO order_sale (order_product_id, order_sale_bankname,userbank_order_sale,order_product_quantity,order_product_unit, order_product_date,order_product_price,order_product_status,order_product_getproduct,order_sale,order_sale_pickup,customer_status_sale) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
     [
-      order_product_id, order_sale_bankname, userbank_order_sale, order_product_quantity, order_product_unit, order_product_date, order_product_price, order_product_status, order_sale, order_sale_pickup,customer_status_sale
+      order_product_id, order_sale_bankname, userbank_order_sale, order_product_quantity, order_product_unit, order_product_date, order_product_price, order_product_status,order_product_getproduct, order_sale, order_sale_pickup,customer_status_sale
     ],
     (err, result) => {
       if (err) {
@@ -844,6 +847,39 @@ app.get("/Showreviewcustom/:user_email", async (req, res) => {
     }
   });
 });
+
+app.get("/checkAndUpdateRank/:user_email", async (req, res) => {
+  const user_email = req.params.user_email;
+
+  db.query("SELECT COUNT(*) AS review_count, bm.bank_name FROM bank_review AS br JOIN bank_master AS bm ON br.bank_codename = bm.bank_codename WHERE br.user_email = ?", [user_email], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      const reviewCount = result[0].review_count; 
+      const bankName = result[0].bank_name;
+      let newRankId = 1; 
+
+      if (reviewCount >= 25) {
+        newRankId = 4;
+      } else if (reviewCount >= 15) {
+        newRankId = 3;
+      } else if (reviewCount >= 5) {
+        newRankId = 2;
+      }
+
+      db.query("UPDATE userinbank AS uib JOIN bank_master AS bm ON uib.userBank_bankName = bm.bank_name JOIN bank_review AS br ON br.bank_codename = bm.bank_codename SET uib.rank_id = ? WHERE uib.userBank_email = ?", [newRankId, user_email], (err, result) => {
+        if (err) {
+          console.log(err);
+          res.status(500).send("Internal Server Error");
+        } else {
+          res.send({newRankId, bankName});
+        }
+      });
+    }
+  });
+});
+
 // app.post("/create", async (req,res) => {
 //     const {username, email , tel} = req.body;
 
@@ -972,6 +1008,54 @@ app.put('/updateStatus2/:order_sale_id', (req, res) => {
   const order_product_status = req.body.order_product_status;
   db.query(
     `UPDATE order_sale SET order_product_status = ? WHERE order_sale_id = ?`, [order_product_status, order_sale_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
+
+app.put('/updateStatusGetproduct/:order_request_id', (req, res) => {
+  const order_request_id = req.params.order_request_id;
+  const order_status_getproduct = req.body.order_status_getproduct;
+  console.log(req.body);
+  db.query(
+    `UPDATE order_request SET order_status_getproduct = ? WHERE order_request_id = ?`, [order_status_getproduct, order_request_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
+app.put('/updateStatusGetproduct1/:exchange_id', (req, res) => {
+  const exchange_id = req.params.exchange_id;
+  const userbank_status_getproduct	 = req.body.userbank_status_getproduct;
+  console.log(req.body);
+  db.query(
+    `UPDATE userbank_exchange SET userbank_status_getproduct	 = ? WHERE exchange_id = ?`, [userbank_status_getproduct	, exchange_id], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
+app.put('/updateStatusGetproduct2/:order_sale_id', (req, res) => {
+  const order_sale_id = req.params.order_sale_id;
+  const order_product_getproduct = req.body.order_product_getproduct;
+  db.query(
+    `UPDATE order_sale SET order_product_getproduct = ? WHERE order_sale_id = ?`, [order_product_getproduct, order_sale_id], (err, result) => {
       if (err) {
         console.error('Error updating product:', err.message);
         return res.status(500).send(err.message);
