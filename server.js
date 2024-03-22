@@ -563,7 +563,7 @@ app.post("/RegisterUserForBank", (req, res) => {
 });
 app.get("/CheckUserInBank/:email", async (req, res) => {
   const userBank_email = req.params.email;
-  db.query("SELECT * FROM userinbank JOIN bank_master ON userinbank.userBank_bankName = bank_master.bank_name where userBank_email = ?", [userBank_email], (err, result) => {
+  db.query("SELECT * FROM userinbank JOIN bank_master ON userinbank.userBank_bankName = bank_master.bank_name  where userBank_email = ?", [userBank_email], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -576,6 +576,31 @@ app.get("/CheckUserInBank/:email", async (req, res) => {
     }
   });
 });
+// app.get("/checkPreviousTransactions/:email", async (req, res) => {
+//   const email = req.params.email;
+//   db.query("SELECT * FROM userinbank JOIN bank_master ON userinbank.userBank_bankName = bank_master.bank_name JOIN order_sale ON order_sale.userbank_order_sale = userinbank.userBank_email WHERE userbank_order_sale = ?", [email], (err, result) => {
+//     if (err) {
+//       console.log(err);
+//       res.status(500).send("Internal Server Error");
+//     } else {
+//       if (result.length > 0) {
+//         // ตรวจสอบว่ามีการรีวิวทรัพยากรเรียบร้อยแล้วหรือไม่
+//         const hasReviewed = result[0].order_sale_pickup === 'รีวิวทรัพยากรเรียบร้อย';
+//         if (hasReviewed) {
+//           // ถ้ามีการรีวิวเรียบร้อยแล้ว
+//           res.send("You have already reviewed the resource. Cannot proceed with the new transaction.");
+//         } else {
+//           // ถ้ายังไม่มีการรีวิว
+//           res.send(result);
+//         }
+//       } else {
+//         res.send("No data found in the database.");
+//       }
+//     }
+//   });
+// });
+
+
 app.get("/showUserInBank/:userBank_bankName", async (req, res) => {
   const userBank_bankName = req.params.userBank_bankName;
   db.query("SELECT * FROM userinbank JOIN user_master JOIN rank_master ON user_master.email = userinbank.userBank_email and rank_master.rank_id =userinbank.rank_id where userBank_bankName = ?", [userBank_bankName], (err, result) => {
@@ -955,6 +980,24 @@ app.get("/checkAndUpdateRank/:user_email", async (req, res) => {
 //         return res.status(500).send();
 //     }
 // })
+
+app.put('/updateProfile/:email', (req, res) => {
+  const email = req.params.email;
+  const { fullname, tel} = req.body;
+  console.log(req.body);
+  db.query(
+    `UPDATE user_master SET fullname = ?, tel = ? WHERE email = ?`, [fullname,tel,email], (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
+
 app.put('/updateProduct/:product_id', (req, res) => {
   const product_id = req.params.product_id;
   const { product_name, product_type, product_type2, product_type3, product_quantity, product_unit, product_price } = req.body;
@@ -971,22 +1014,55 @@ app.put('/updateProduct/:product_id', (req, res) => {
     }
   );
 });
+
 app.put('/updateStatus/:order_request_id', (req, res) => {
   const order_request_id = req.params.order_request_id;
   const order_status = req.body.order_status;
   console.log(req.body);
+
   db.query(
-    `UPDATE order_request SET order_status = ? WHERE order_request_id = ?`, [order_status, order_request_id], (err, result) => {
+    `UPDATE order_request SET order_status = ? WHERE order_request_id = ?`, 
+    [order_status, order_request_id], 
+    (err, result) => {
       if (err) {
         console.error('Error updating product:', err.message);
         return res.status(500).send(err.message);
       }
+      console.log('Order status updated successfully');
+      if (order_status === "อนุมัติให้ทำรายการ") {
+        db.query(
+          `SELECT order_id, order_quantity FROM order_request WHERE order_request_id = ?`,
+          [order_request_id],
+          (err, rows) => {
+            if (err) {
+              console.error('Error fetching order details:', err.message);
+              return res.status(500).send(err.message);
+            }
+            const order_id = rows[0].order_id;
+            const order_quantity = rows[0].order_quantity;
+            db.query(
+              `UPDATE bank_product SET product_quantity = product_quantity - ? WHERE product_id = ?`, 
+              [order_quantity, order_id], 
+              (err, result) => {
+                if (err) {
+                  console.error('Error updating product quantity:', err.message);
+                  return res.status(500).send(err.message);
+                }
 
-      console.log('Product updated successfully');
-      res.json(result);
+                console.log('Product quantity updated successfully');
+                res.json(result);
+              }
+            );
+          }
+        );
+      } else {
+        res.json(result);
+      }
     }
   );
 });
+
+
 app.put('/updateStatus1/:exchange_id', (req, res) => {
   const exchange_id = req.params.exchange_id;
   const userbank_status = req.body.userbank_status;
@@ -997,9 +1073,36 @@ app.put('/updateStatus1/:exchange_id', (req, res) => {
         console.error('Error updating product:', err.message);
         return res.status(500).send(err.message);
       }
+      console.log('Order status updated successfully');
+      if (userbank_status === "อนุมัติให้ทำรายการ") {
+        db.query(
+          `SELECT orderExchange_id, userbank_productquantity FROM userbank_exchange WHERE exchange_id = ?`,
+          [exchange_id],
+          (err, rows) => {
+            if (err) {
+              console.error('Error fetching order details:', err.message);
+              return res.status(500).send(err.message);
+            }
+            const orderExchange_id = rows[0].orderExchange_id;
+            const userbank_productquantity = rows[0].userbank_productquantity;
+            db.query(
+              `UPDATE bank_product SET product_quantity = product_quantity - ? WHERE product_id = ?`, 
+              [userbank_productquantity, orderExchange_id], 
+              (err, result) => {
+                if (err) {
+                  console.error('Error updating product quantity:', err.message);
+                  return res.status(500).send(err.message);
+                }
 
-      console.log('Product updated successfully');
-      res.json(result);
+                console.log('Product quantity updated successfully');
+                res.json(result);
+              }
+            );
+          }
+        );
+      } else {
+        res.json(result);
+      }
     }
   );
 });
@@ -1012,9 +1115,39 @@ app.put('/updateStatus2/:order_sale_id', (req, res) => {
         console.error('Error updating product:', err.message);
         return res.status(500).send(err.message);
       }
+      console.log('Order status updated successfully');
+      if (order_product_status === "อนุมัติให้ทำรายการ") {
+        db.query(
+          `SELECT order_product_id, order_product_quantity FROM order_sale WHERE order_sale_id = ?`,
+          [order_sale_id],
+          (err, rows) => {
+            if (err) {
+              console.error('Error fetching order details:', err.message);
+              return res.status(500).send(err.message);
+            }
 
-      console.log('Product updated successfully');
-      res.json(result);
+            const order_product_id = rows[0].order_product_id;
+            const order_product_quantity = rows[0].order_product_quantity;
+
+            // ลดจำนวนสินค้าใน bank_product เฉพาะ product_id และจำนวนที่ร้องขอ
+            db.query(
+              `UPDATE bank_product SET product_quantity = product_quantity - ? WHERE product_id = ?`, 
+              [order_product_quantity, order_product_id], 
+              (err, result) => {
+                if (err) {
+                  console.error('Error updating product quantity:', err.message);
+                  return res.status(500).send(err.message);
+                }
+
+                console.log('Product quantity updated successfully');
+                res.json(result);
+              }
+            );
+          }
+        );
+      } else {
+        res.json(result);
+      }
     }
   );
 });
