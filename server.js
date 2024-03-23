@@ -653,7 +653,7 @@ app.get("/notifications/:bank_name", async (req, res) => {
 app.get("/notifications_bank/:bank_name", async (req, res) => {
   const userEmail = req.params.bank_name;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE order_request.bank_name = ?",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id JOIN user_master ON user_master.email = order_request.userbank_email WHERE order_request.bank_name = ? GROUP BY order_request.order_request_id;",
     [userEmail],
     (err, result) => {
       if (err) {
@@ -673,7 +673,7 @@ app.get("/notifications_bank/:bank_name", async (req, res) => {
 app.get("/notifications_bank1/:bank_name", async (req, res) => {
   const userbank_name = req.params.bank_name;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_name= ?",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_name= ? GROUP BY userbank_exchange.exchange_id;",
     [userbank_name],
     (err, result) => {
       if (err) {
@@ -693,7 +693,7 @@ app.get("/notifications_bank1/:bank_name", async (req, res) => {
 app.get("/notifications_bank2/:bank_name", async (req, res) => {
   const userbank_name = req.params.bank_name;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_sale ON order_sale.order_product_id = bank_product.product_id JOIN user_master ON user_master.email = order_sale.userbank_order_sale WHERE bank_master.bank_name= ?",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_sale ON order_sale.order_product_id = bank_product.product_id JOIN user_master ON user_master.email = order_sale.userbank_order_sale WHERE bank_master.bank_name= ? GROUP BY order_sale.order_sale_id;",
     [userbank_name],
     (err, result) => {
       if (err) {
@@ -713,7 +713,7 @@ app.get("/notifications_bank2/:bank_name", async (req, res) => {
 app.get("/Inbox/:email", async (req, res) => {
   const userEmail = req.params.email;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id  JOIN user_master ON user_master.email = order_request.userbank_email WHERE user_master.email = ? ",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_request ON order_request.order_id = bank_product.product_id  JOIN user_master ON user_master.email = order_request.userbank_email WHERE user_master.email = ? GROUP BY order_request.order_request_id;",
     [userEmail],
     (err, result) => {
       if (err) {
@@ -733,7 +733,7 @@ app.get("/Inbox/:email", async (req, res) => {
 app.get("/Inbox1/:email", async (req, res) => {
   const userEmail = req.params.email;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id  JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE user_master.email= ? ",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id  JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE user_master.email= ? GROUP BY userbank_exchange.exchange_id;",
     [userEmail],
     (err, result) => {
       if (err) {
@@ -753,7 +753,7 @@ app.get("/Inbox1/:email", async (req, res) => {
 app.get("/Inbox2/:email", async (req, res) => {
   const userEmail = req.params.email;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_sale ON order_sale.order_product_id = bank_product.product_id JOIN user_master ON user_master.email = order_sale.userbank_order_sale WHERE user_master.email = ? ",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN order_sale ON order_sale.order_product_id = bank_product.product_id JOIN user_master ON user_master.email = order_sale.userbank_order_sale WHERE user_master.email = ? GROUP BY order_sale.order_sale_id;",
     [userEmail],
     (err, result) => {
       if (err) {
