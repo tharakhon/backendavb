@@ -176,7 +176,9 @@ app.post("/bank_product", upload.single('product_image'), (req, res) => {
 });
 
 app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res) => {
-  const sql = "INSERT INTO userbank_exchange  (`orderExchange_id`,`bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`,`userbank_status`,`userbank_status_getproduct`,`order_exchange`,`order_exchange_pickup`,`customer_status_exchange`) VALUES (?)";
+  const borrowDate = new Date(req.body.userbank_borrowdate).toISOString().split('T')[0];
+
+  const sql = "INSERT INTO userbank_exchange (`orderExchange_id`, `bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_productdetails`, `userbank_unit`, `userbank_status`, `userbank_borrowdate`, `userbank_status_getproduct`, `order_exchange`, `order_exchange_pickup`, `customer_status_exchange`) VALUES (?)";
   const values = [
     req.body.orderExchange_id,
     req.body.bank_name,
@@ -188,35 +190,24 @@ app.post("/userbank_exchange", upload.single('userbank_productimage'), (req, res
     req.body.userbank_productdetails,
     req.body.userbank_unit,
     'รอการตรวจสอบ',
+    borrowDate,
     'ยังไม่ได้มารับทรัพยากร',
     'รายการเพื่อแลกเปลี่ยน',
     'รอการรีวิวทรัพยากร',
     'รอธนาคารรีวิวผู้ใช้'
-  ]
+  ];
+
   db.query(sql, [values], (err, result) => {
-    if (err) return res.json({ Error: "Error singup query" });
+    if (err) {
+      console.error("Error in query:", err);
+      return res.json({ Error: "Error in query" });
+    }
     return res.json({ Status: "Success" });
-  })
+  });
 });
 
-app.get("c/:email", (req, res) => {
-  const email = req.params.email;
-  db.query(
-    "SELECT COUNT(CASE WHEN userbank_exchange.order_exchange_pickup = 'รอการรีวิวทรัพยากร' THEN 1 ELSE NULL END) AS order_pickup_count_exchange FROM userinbank JOIN userbank_exchange ON userinbank.userBank_bankName = userbank_exchange.bank_name WHERE userinbank.userBank_email = ?",
-    [email], (err, result) => {
-      if (err) {
-        console.log(err);
-        res.status(500).send("Internal Server Error");
-      } else {
-        if (result.length > 0) {
 
-          res.send(result);
-        } else {
-          res.send("No data found in the database.");
-        }
-      }
-    });
-})
+
 app.post("/order_request", (req, res) => {
   const order_id = req.body.order_id;
   const bank_name = req.body.bank_name;
@@ -231,7 +222,7 @@ app.post("/order_request", (req, res) => {
   const customer_status = "รอธนาคารรีวิวผู้ใช้ ";
 
   db.query(
-    "SELECT userinbank.rank_id,COUNT(CASE WHEN order_request.order_rental_pickup = 'รอการรีวิวทรัพยากร' THEN 1 ELSE NULL END) AS review_pickup_count FROM order_request JOIN userinbank ON userinbank.userBank_bankName = order_request.bank_name  WHERE userinbank.userBank_email = ?",
+    "SELECT userinbank.rank_id,COUNT(CASE WHEN order_request.order_rental_pickup = 'รอการรีวิวทรัพยากร' AND order_request.order_status != 'ไม่อนุมัติให้ทำรายการ' THEN 1 ELSE NULL END) AS review_pickup_count FROM order_request JOIN userinbank ON userinbank.userBank_bankName = order_request.bank_name  WHERE userinbank.userBank_email = ?",
     [userbank_email],
     (err, result) => {
       if (err) {
@@ -347,97 +338,20 @@ app.post("/order_sale", (req, res) => {
   const order_sale = "รายการเพื่อการซื้อขาย";
   const order_sale_pickup = "รอการรีวิวทรัพยากร";
   const customer_status_sale = "รอธนาคารรีวิวผู้ใช้";
-
   db.query(
-    "SELECT userinbank.rank_id, COUNT(CASE WHEN order_sale.order_sale_pickup = 'รอการรีวิวทรัพยากร' THEN 1 ELSE NULL END) AS review_pickup_count_sale FROM order_sale JOIN userinbank ON userinbank.userBank_bankName = order_sale.order_sale_bankname WHERE userinbank.userBank_email = ?",
-    [userbank_order_sale],
+    "INSERT INTO order_sale (order_product_id, order_sale_bankname, userbank_order_sale, order_product_quantity, order_product_unit, order_product_date, order_product_price, order_product_status, order_product_getproduct, order_sale, order_sale_pickup, customer_status_sale) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [
+      order_product_id, order_sale_bankname, userbank_order_sale, order_product_quantity, order_product_unit, order_product_date, order_product_price, order_product_status, order_product_getproduct, order_sale, order_sale_pickup, customer_status_sale
+    ],
     (err, result) => {
       if (err) {
         console.log(err);
         return res.status(500).json({ error: "Internal server error" });
       } else {
-        const rank_id = result[0].rank_id;
-        const review_pickup_count_sale = result[0].review_pickup_count_sale;
-        console.log(rank_id);
-        console.log(review_pickup_count_sale);
-        if (review_pickup_count_sale > 0) {
-          let max_order_quantity = 0;
-
-          switch (rank_id) {
-            case 1:
-              db.query("SELECT bank_bronze FROM bank_master WHERE bank_name = ?", [order_sale_bankname], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_bronze;
-                  insertOrderSale(max_order_quantity, review_pickup_count_sale);
-                }
-              });
-              break;
-            case 2:
-              db.query("SELECT bank_silver FROM bank_master WHERE bank_name = ?", [order_sale_bankname], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_silver;
-                  insertOrderSale(max_order_quantity, review_pickup_count_sale);
-                }
-              });
-              break;
-            case 3:
-              db.query("SELECT bank_gold FROM bank_master WHERE bank_name = ?", [order_sale_bankname], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_gold;
-                  insertOrderSale(max_order_quantity, review_pickup_count_sale);
-                }
-              });
-              break;
-            case 4:
-              db.query("SELECT bank_platinum FROM bank_master WHERE bank_name = ?", [order_sale_bankname], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_platinum;
-                  insertOrderSale(max_order_quantity, review_pickup_count_sale);
-                }
-              });
-              break;
-            default:
-              return res.status(400).json({ error: "Invalid rank_id" });
-          }
-        } else {
-          insertOrderSale(0, 0);
-        }
+        res.send("Values Inserted");
       }
     }
   );
-
-  function insertOrderSale(max_order_quantity, review_pickup_count_sale) {
-    if (max_order_quantity && review_pickup_count_sale >= max_order_quantity) {
-      return res.status(400).json({ error: "Max order quantity exceeded" });
-    } else {
-      db.query(
-        "INSERT INTO order_sale (order_product_id, order_sale_bankname, userbank_order_sale, order_product_quantity, order_product_unit, order_product_date, order_product_price, order_product_status, order_product_getproduct, order_sale, order_sale_pickup, customer_status_sale) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          order_product_id, order_sale_bankname, userbank_order_sale, order_product_quantity, order_product_unit, order_product_date, order_product_price, order_product_status, order_product_getproduct, order_sale, order_sale_pickup, customer_status_sale
-        ],
-        (err, result) => {
-          if (err) {
-            console.log(err);
-            return res.status(500).json({ error: "Internal server error" });
-          } else {
-            res.send("Values Inserted");
-          }
-        }
-      );
-    }
-  }
 });
 
 
@@ -446,98 +360,20 @@ app.post("/order_exchangeRequest", (req, res) => {
   const bank_name = req.body.bank_name;
   const userbank_email = req.body.userbank_email;
   const orderExchange_quantity = req.body.orderExchange_quantity;
-  const orderExchange_borrowDate = req.body.orderExchange_borrowDate;
-
   db.query(
-    "SELECT userinbank.rank_id, COUNT(CASE WHEN userbank_exchange.order_exchange_pickup = 'รอการรีวิวทรัพยากร' THEN 1 ELSE NULL END) AS order_pickup_count_exchange FROM userbank_exchange JOIN userinbank ON userinbank.userBank_bankName = userbank_exchange.bank_name  WHERE userinbank.userBank_email = ?",
-    [userbank_email],
+    "INSERT INTO orderexchage_request (orderExchange_id,bank_name, userbank_email,orderExchange_quantity) VALUES (?,?,?,?)",
+    [
+      orderExchange_id, bank_name, userbank_email, orderExchange_quantity
+    ],
     (err, result) => {
       if (err) {
         console.log(err);
         return res.status(500).json({ error: "Internal server error" });
       } else {
-        const rank_id = result[0].rank_id;
-        const order_pickup_count_exchange = result[0].order_pickup_count_exchange;
-        console.log(rank_id);
-        console.log(order_pickup_count_exchange);
-        if (order_pickup_count_exchange > 0) {
-          let max_order_quantity = 0;
-
-          switch (rank_id) {
-            case 1:
-              db.query("SELECT bank_bronze FROM bank_master WHERE bank_name = ?", [bank_name], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_bronze;
-                  insertOrderExchange(max_order_quantity, order_pickup_count_exchange);
-                }
-              });
-              break;
-            case 2:
-              db.query("SELECT bank_silver FROM bank_master WHERE bank_name = ?", [bank_name], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_silver;
-                  insertOrderExchange(max_order_quantity, order_pickup_count_exchange);
-                }
-              });
-              break;
-            case 3:
-              db.query("SELECT bank_gold FROM bank_master WHERE bank_name = ?", [bank_name], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_gold;
-                  insertOrderExchange(max_order_quantity, order_pickup_count_exchange);
-                }
-              });
-              break;
-            case 4:
-              db.query("SELECT bank_platinum FROM bank_master WHERE bank_name = ?", [bank_name], (err, result) => {
-                if (err) {
-                  console.log(err);
-                  return res.status(500).json({ error: "Internal server error" });
-                } else {
-                  max_order_quantity = result[0].bank_platinum;
-                  insertOrderExchange(max_order_quantity, order_pickup_count_exchange);
-                }
-              });
-              break;
-            default:
-              return res.status(400).json({ error: "Invalid rank_id" });
-          }
-        } else {
-          insertOrderExchange(0, 0);
-        }
+        res.send("Values Inserted");
       }
     }
   );
-
-  function insertOrderExchange(max_order_quantity, order_pickup_count_exchange) {
-    if (max_order_quantity && order_pickup_count_exchange >= max_order_quantity) {
-      return res.status(400).json({ error: "Max order quantity exceeded" });
-    } else {
-      db.query(
-        "INSERT INTO orderexchage_request (orderExchange_id,bank_name, userbank_email,orderExchange_quantity,orderExchange_borrowDate) VALUES (?,?,?,?,?)",
-        [
-          orderExchange_id, bank_name, userbank_email, orderExchange_quantity, orderExchange_borrowDate
-        ],
-        (err, result) => {
-          if (err) {
-            console.log(err);
-            return res.status(500).json({ error: "Internal server error" });
-          } else {
-            res.send("Values Inserted");
-          }
-        }
-      );
-    }
-  }
 });
 
 app.post("/create", (req, res) => {
@@ -700,7 +536,7 @@ app.get("/showProductUser2/:bank_name", (req, res) => {
 
 app.get("/showProductUser3/:bank_name", (req, res) => {
   const bank_name = req.params.bank_name;
-  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id WHERE orderexchage_request.bank_name = ?", [bank_name], (err, result) => {
+  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email  WHERE userbank_exchange.bank_name = ? GROUP BY userbank_exchange.exchange_id", [bank_name], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -1120,6 +956,32 @@ app.post("/Reviewcustom", upload.single('customer_review_image'), (req, res) => 
   })
 });
 
+
+app.post("/saveBankData/:bank_name", async (req, res) => {
+  const bank = req.params.bank_name;
+  const {bank_name,bank_telephone,bank_address} = req.body;
+
+  db.query("SELECT * FROM bank_master WHERE bank_name = ?", [bank], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        db.query("UPDATE bank_master SET bank_name = ?, bank_telephone = ?,bank_address = ?  WHERE bank_name = ?", [bank_name,bank_telephone,bank_address, bank], (err, result) => {
+          if (err) {
+            console.log(err);
+            res.status(500).send("Internal Server Error");
+          } else {
+            res.status(200).send("Data updated successfully");
+          }
+        });
+      } else {
+        res.status(404).send("Bank not found in the database.");
+      }
+    }
+  });
+});
+
 app.get("/Showreviewcustom/:user_email", async (req, res) => {
   const user_email = req.params.user_email;
   db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN review_customer ON review_customer.product_id  = bank_product.product_id  where review_customer.user_email = ?", [user_email], (err, result) => {
@@ -1194,6 +1056,22 @@ app.get("/checkAndUpdateRankBank", async (req, res) => {
           res.send({ newRankId, bankName });
         }
       });
+    }
+  });
+});
+
+app.get("/ShowBank/:bank_name", async (req, res) => {
+  const bank_name = req.params.bank_name;
+  db.query("SELECT * FROM bank_master where bank_name = ?", [bank_name], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
     }
   });
 });
