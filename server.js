@@ -138,6 +138,22 @@ app.post('/bank_create', upload.single('bank_image'), (req, res) => {
 
 app.get("/user/:email", (req, res) => {
   const email = req.params.email;
+  db.query("SELECT * FROM user_master JOIN userinbank ON userinbank.userBank_email = user_master.email JOIN rank_master ON rank_master.rank_id = userinbank.rank_id WHERE email = ?", [email], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+
+app.get("/user1/:email", (req, res) => {
+  const email = req.params.email;
   db.query("SELECT * FROM user_master WHERE email = ?", [email], (err, result) => {
     if (err) {
       console.log(err);
@@ -537,7 +553,7 @@ app.get("/showProductUser2/:bank_name", (req, res) => {
 
 app.get("/showProductUser3/:bank_name", (req, res) => {
   const bank_name = req.params.bank_name;
-  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email  WHERE userbank_exchange.bank_name = ? GROUP BY userbank_exchange.exchange_id", [bank_name], (err, result) => {
+  db.query("SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email  WHERE userbank_exchange.bank_name = ? GROUP BY exchange_id", [bank_name], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -771,7 +787,7 @@ app.get("/notifications_bank/:bank_name", async (req, res) => {
 app.get("/notifications_bank1/:bank_name", async (req, res) => {
   const userbank_name = req.params.bank_name;
   db.query(
-    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_name= ? GROUP BY userbank_exchange.exchange_id;",
+    "SELECT * FROM bank_product JOIN bank_master ON bank_master.bank_codename = bank_product.bank_codename JOIN orderexchage_request ON orderexchage_request.orderExchange_id = bank_product.product_id JOIN userbank_exchange ON userbank_exchange.orderExchange_id = orderexchage_request.orderExchange_id JOIN user_master ON user_master.email = orderexchage_request.userbank_email WHERE bank_master.bank_name= ? GROUP BY exchange_id ;",
     [userbank_name],
     (err, result) => {
       if (err) {
@@ -960,7 +976,7 @@ app.post("/Reviewcustom", upload.single('customer_review_image'), (req, res) => 
 
 app.post("/saveBankData/:bank_name", async (req, res) => {
   const bank = req.params.bank_name;
-  const {bank_name,bank_telephone,bank_address} = req.body;
+  const { bank_name, bank_telephone, bank_address } = req.body;
 
   db.query("SELECT * FROM bank_master WHERE bank_name = ?", [bank], (err, result) => {
     if (err) {
@@ -968,7 +984,7 @@ app.post("/saveBankData/:bank_name", async (req, res) => {
       res.status(500).send("Internal Server Error");
     } else {
       if (result.length > 0) {
-        db.query("UPDATE bank_master SET bank_name = ?, bank_telephone = ?,bank_address = ?  WHERE bank_name = ?", [bank_name,bank_telephone,bank_address, bank], (err, result) => {
+        db.query("UPDATE bank_master SET bank_name = ?, bank_telephone = ?,bank_address = ?  WHERE bank_name = ?", [bank_name, bank_telephone, bank_address, bank], (err, result) => {
           if (err) {
             console.log(err);
             res.status(500).send("Internal Server Error");
@@ -1263,7 +1279,7 @@ app.put('/updateStatus1/:exchange_id', (req, res) => {
   const exchange_id = req.params.exchange_id;
   const userbank_status = req.body.userbank_status;
   console.log(req.body);
-  
+
   db.query(
     `SELECT orderExchange_id FROM userbank_exchange WHERE exchange_id = ?`,
     [exchange_id],
@@ -1274,67 +1290,79 @@ app.put('/updateStatus1/:exchange_id', (req, res) => {
       }
       const orderExchange_id = rows[0].orderExchange_id;
       db.query(
-        `SELECT product_quantity FROM bank_product WHERE product_id = ?`,
+        `SELECT orderExchange_quantity FROM orderexchage_request WHERE orderExchange_id = ?`,
         [orderExchange_id],
         (err, rows) => {
           if (err) {
-            console.error('Error fetching product quantity:', err.message);
+            console.error('Error fetching order quantity:', err.message);
             return res.status(500).send(err.message);
           }
-          const product_quantity = rows[0].product_quantity;
-          if (userbank_status === "อนุมัติให้ทำรายการ" && product_quantity === 0) {
-            return res.status(400).send('ไม่สามารถอนุมัติได้เนื่องจากจำนวนทรัพยากรหมดแล้ว');
-          }
-          // ตรวจสอบว่าสถานะเป็น "อนุมัติให้ทำรายการ" และ product_quantity ไม่เป็น 0 ก่อนทำการอัปเดต
-          if (userbank_status === "อนุมัติให้ทำรายการ") {
-            db.query(
-              `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`,
-              [userbank_status, exchange_id],
-              (err, result) => {
-                if (err) {
-                  console.error('Error updating product:', err.message);
-                  return res.status(500).send(err.message);
-                }
-                console.log('Order status updated successfully');
+          const orderExchange_quantity = rows[0].orderExchange_quantity;
+          db.query(
+            `SELECT product_quantity FROM bank_product WHERE product_id = ?`,
+            [orderExchange_id],
+            (err, rows) => {
+              if (err) {
+                console.error('Error fetching product quantity:', err.message);
+                return res.status(500).send(err.message);
+              }
+              const product_quantity = rows[0].product_quantity;
+              if (userbank_status === "อนุมัติให้ทำรายการ" && product_quantity === 0) {
+                return res.status(400).send('ไม่สามารถอนุมัติได้เนื่องจากจำนวนทรัพยากรไม่เพียงพอ');
+              }
+              // ตรวจสอบว่าสถานะเป็น "อนุมัติให้ทำรายการ" และ product_quantity มากกว่าหรือเท่ากับ orderExchange_quantity ก่อนทำการอัปเดต
+              if (userbank_status === "อนุมัติให้ทำรายการ") {
                 db.query(
-                  `UPDATE bank_product SET product_quantity = product_quantity - (SELECT userbank_productquantity FROM userbank_exchange WHERE exchange_id = ?) WHERE product_id = ?`,
-                  [exchange_id, orderExchange_id],
+                  `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`,
+                  [userbank_status, exchange_id],
                   (err, result) => {
                     if (err) {
-                      console.error('Error updating product quantity:', err.message);
+                      console.error('Error updating order status:', err.message);
                       return res.status(500).send(err.message);
                     }
-                    console.log('Product quantity updated successfully');
+                    console.log('Order status updated successfully');
+                    db.query(
+                      `UPDATE bank_product SET product_quantity = product_quantity - ? WHERE product_id = ?`,
+                      [orderExchange_quantity, orderExchange_id],
+                      (err, result) => {
+                        if (err) {
+                          console.error('Error updating product quantity:', err.message);
+                          return res.status(500).send(err.message);
+                        }
+                        console.log('Product quantity updated successfully');
+                        res.json(result);
+                      }
+                    );
+                  }
+                );
+              } else {
+                // ถ้าสถานะไม่ได้เป็น "อนุมัติให้ทำรายการ" ให้เปลี่ยนสถานะเท่ากับที่ร้องขอ
+                db.query(
+                  `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`,
+                  [userbank_status, exchange_id],
+                  (err, result) => {
+                    if (err) {
+                      console.error('Error updating order status:', err.message);
+                      return res.status(500).send(err.message);
+                    }
+                    console.log('Order status updated successfully');
                     res.json(result);
                   }
                 );
               }
-            );
-          } else {
-            // ถ้าสถานะไม่ได้เป็น "อนุมัติให้ทำรายการ" ให้เปลี่ยนสถานะเท่ากับที่ร้องขอ
-            db.query(
-              `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`,
-              [userbank_status, exchange_id],
-              (err, result) => {
-                if (err) {
-                  console.error('Error updating product:', err.message);
-                  return res.status(500).send(err.message);
-                }
-                console.log('Order status updated successfully');
-                res.json(result);
-              }
-            );
-          }
+            }
+          );
         }
       );
     }
   );
 });
 
+
 app.put('/updateStatus2/:order_sale_id', (req, res) => {
   const order_sale_id = req.params.order_sale_id;
   const order_product_status = req.body.order_product_status;
-  
+
   db.query(
     `SELECT order_product_id FROM order_sale WHERE order_sale_id = ?`,
     [order_sale_id],
@@ -1543,6 +1571,23 @@ app.put('/updateStatusRentalCustomer/:order_request_id', (req, res) => {
         return res.status(500).send(err.message);
       }
 
+      console.log('Product updated successfully');
+      res.json(result);
+    }
+  );
+});
+
+app.put('/updateStatususer/:email', (req, res) => {
+  const email = req.params.email;
+  const statused = req.body.statused;
+  console.log(req.body);
+  db.query(
+    `UPDATE user_master SET statused     = ? WHERE email = ?`, [statused, email],
+    (err, result) => {
+      if (err) {
+        console.error('Error updating product:', err.message);
+        return res.status(500).send(err.message);
+      }
       console.log('Product updated successfully');
       res.json(result);
     }
