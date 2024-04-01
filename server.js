@@ -382,9 +382,10 @@ app.post("/create", (req, res) => {
   const fullname = req.body.fullname;
   const tel = req.body.tel;
   const rank_id = '1';
+  const statused = 'Active';
   db.query(
-    "INSERT INTO user_master (image,email,fullname , tel,rank_id) VALUES (?,?,?,?,?)",
-    [image, email, fullname, tel, rank_id],
+    "INSERT INTO user_master (image,email,fullname , tel,rank_id,statused) VALUES (?,?,?,?,?,?)",
+    [image, email, fullname, tel, rank_id, statused],
     (err, result) => {
       if (err) {
         console.log(err);
@@ -1192,136 +1193,215 @@ app.put('/updateStatus/:order_request_id', (req, res) => {
   console.log(req.body);
 
   db.query(
-    `UPDATE order_request SET order_status = ? WHERE order_request_id = ?`,
-    [order_status, order_request_id],
-    (err, result) => {
+    `SELECT order_id FROM order_request WHERE order_request_id = ?`,
+    [order_request_id],
+    (err, rows) => {
       if (err) {
-        console.error('Error updating product:', err.message);
+        console.error('Error fetching order details:', err.message);
         return res.status(500).send(err.message);
       }
-      console.log('Order status updated successfully');
-      if (order_status === "อนุมัติให้ทำรายการ") {
-        db.query(
-          `SELECT order_id, order_quantity FROM order_request WHERE order_request_id = ?`,
-          [order_request_id],
-          (err, rows) => {
-            if (err) {
-              console.error('Error fetching order details:', err.message);
-              return res.status(500).send(err.message);
-            }
-            const order_id = rows[0].order_id;
-            const order_quantity = rows[0].order_quantity;
+      const order_id = rows[0].order_id;
+      db.query(
+        `SELECT product_quantity FROM bank_product WHERE product_id = ?`,
+        [order_id],
+        (err, rows) => {
+          if (err) {
+            console.error('Error fetching product quantity:', err.message);
+            return res.status(500).send(err.message);
+          }
+          const product_quantity = rows[0].product_quantity;
+          if (order_status === "อนุมัติให้ทำรายการ" && product_quantity === 0) {
+            return res.status(400).send('ไม่สามารถอนุมัติได้เนื่องจากจำนวนทรัพยากรหมดแล้ว');
+          }
+          // ตรวจสอบว่าสถานะเป็น "อนุมัติให้ทำรายการ" และ product_quantity ไม่เป็น 0 ก่อนทำการอัปเดต
+          if (order_status === "อนุมัติให้ทำรายการ") {
             db.query(
-              `UPDATE bank_product SET product_quantity = product_quantity - ? WHERE product_id = ?`,
-              [order_quantity, order_id],
+              `UPDATE order_request SET order_status = ? WHERE order_request_id = ?`,
+              [order_status, order_request_id],
               (err, result) => {
                 if (err) {
-                  console.error('Error updating product quantity:', err.message);
+                  console.error('Error updating product:', err.message);
                   return res.status(500).send(err.message);
                 }
-
-                console.log('Product quantity updated successfully');
+                console.log('Order status updated successfully');
+                db.query(
+                  `UPDATE bank_product SET product_quantity = product_quantity - (SELECT order_quantity FROM order_request WHERE order_request_id = ?) WHERE product_id = ?`,
+                  [order_request_id, order_id],
+                  (err, result) => {
+                    if (err) {
+                      console.error('Error updating product quantity:', err.message);
+                      return res.status(500).send(err.message);
+                    }
+                    console.log('Product quantity updated successfully');
+                    res.json(result);
+                  }
+                );
+              }
+            );
+          } else {
+            // ถ้าสถานะไม่ได้เป็น "อนุมัติให้ทำรายการ" ให้เปลี่ยนสถานะเท่ากับที่ร้องขอ
+            db.query(
+              `UPDATE order_request SET order_status = ? WHERE order_request_id = ?`,
+              [order_status, order_request_id],
+              (err, result) => {
+                if (err) {
+                  console.error('Error updating product:', err.message);
+                  return res.status(500).send(err.message);
+                }
+                console.log('Order status updated successfully');
                 res.json(result);
               }
             );
           }
-        );
-      } else {
-        res.json(result);
-      }
+        }
+      );
     }
   );
 });
-
 
 app.put('/updateStatus1/:exchange_id', (req, res) => {
   const exchange_id = req.params.exchange_id;
   const userbank_status = req.body.userbank_status;
   console.log(req.body);
+  
   db.query(
-    `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`, [userbank_status, exchange_id], (err, result) => {
+    `SELECT orderExchange_id FROM userbank_exchange WHERE exchange_id = ?`,
+    [exchange_id],
+    (err, rows) => {
       if (err) {
-        console.error('Error updating product:', err.message);
+        console.error('Error fetching order details:', err.message);
         return res.status(500).send(err.message);
       }
-      console.log('Order status updated successfully');
-      if (userbank_status === "อนุมัติให้ทำรายการ") {
-        db.query(
-          `SELECT orderExchange_id, userbank_productquantity FROM userbank_exchange WHERE exchange_id = ?`,
-          [exchange_id],
-          (err, rows) => {
-            if (err) {
-              console.error('Error fetching order details:', err.message);
-              return res.status(500).send(err.message);
-            }
-            const orderExchange_id = rows[0].orderExchange_id;
-            const userbank_productquantity = rows[0].userbank_productquantity;
+      const orderExchange_id = rows[0].orderExchange_id;
+      db.query(
+        `SELECT product_quantity FROM bank_product WHERE product_id = ?`,
+        [orderExchange_id],
+        (err, rows) => {
+          if (err) {
+            console.error('Error fetching product quantity:', err.message);
+            return res.status(500).send(err.message);
+          }
+          const product_quantity = rows[0].product_quantity;
+          if (userbank_status === "อนุมัติให้ทำรายการ" && product_quantity === 0) {
+            return res.status(400).send('ไม่สามารถอนุมัติได้เนื่องจากจำนวนทรัพยากรหมดแล้ว');
+          }
+          // ตรวจสอบว่าสถานะเป็น "อนุมัติให้ทำรายการ" และ product_quantity ไม่เป็น 0 ก่อนทำการอัปเดต
+          if (userbank_status === "อนุมัติให้ทำรายการ") {
             db.query(
-              `UPDATE bank_product SET product_quantity = product_quantity - ? WHERE product_id = ?`,
-              [userbank_productquantity, orderExchange_id],
+              `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`,
+              [userbank_status, exchange_id],
               (err, result) => {
                 if (err) {
-                  console.error('Error updating product quantity:', err.message);
+                  console.error('Error updating product:', err.message);
                   return res.status(500).send(err.message);
                 }
-
-                console.log('Product quantity updated successfully');
+                console.log('Order status updated successfully');
+                db.query(
+                  `UPDATE bank_product SET product_quantity = product_quantity - (SELECT userbank_productquantity FROM userbank_exchange WHERE exchange_id = ?) WHERE product_id = ?`,
+                  [exchange_id, orderExchange_id],
+                  (err, result) => {
+                    if (err) {
+                      console.error('Error updating product quantity:', err.message);
+                      return res.status(500).send(err.message);
+                    }
+                    console.log('Product quantity updated successfully');
+                    res.json(result);
+                  }
+                );
+              }
+            );
+          } else {
+            // ถ้าสถานะไม่ได้เป็น "อนุมัติให้ทำรายการ" ให้เปลี่ยนสถานะเท่ากับที่ร้องขอ
+            db.query(
+              `UPDATE userbank_exchange SET userbank_status = ? WHERE exchange_id = ?`,
+              [userbank_status, exchange_id],
+              (err, result) => {
+                if (err) {
+                  console.error('Error updating product:', err.message);
+                  return res.status(500).send(err.message);
+                }
+                console.log('Order status updated successfully');
                 res.json(result);
               }
             );
           }
-        );
-      } else {
-        res.json(result);
-      }
+        }
+      );
     }
   );
 });
+
 app.put('/updateStatus2/:order_sale_id', (req, res) => {
   const order_sale_id = req.params.order_sale_id;
   const order_product_status = req.body.order_product_status;
+  
   db.query(
-    `UPDATE order_sale SET order_product_status = ? WHERE order_sale_id = ?`, [order_product_status, order_sale_id], (err, result) => {
+    `SELECT order_product_id FROM order_sale WHERE order_sale_id = ?`,
+    [order_sale_id],
+    (err, rows) => {
       if (err) {
-        console.error('Error updating product:', err.message);
+        console.error('Error fetching order details:', err.message);
         return res.status(500).send(err.message);
       }
-      console.log('Order status updated successfully');
-      if (order_product_status === "อนุมัติให้ทำรายการ") {
-        db.query(
-          `SELECT order_product_id, order_product_quantity FROM order_sale WHERE order_sale_id = ?`,
-          [order_sale_id],
-          (err, rows) => {
-            if (err) {
-              console.error('Error fetching order details:', err.message);
-              return res.status(500).send(err.message);
-            }
-
-            const order_product_id = rows[0].order_product_id;
-            const order_product_quantity = rows[0].order_product_quantity;
-
-            // ลดจำนวนสินค้าใน bank_product เฉพาะ product_id และจำนวนที่ร้องขอ
+      const order_product_id = rows[0].order_product_id;
+      db.query(
+        `SELECT product_quantity FROM bank_product WHERE product_id = ?`,
+        [order_product_id],
+        (err, rows) => {
+          if (err) {
+            console.error('Error fetching product quantity:', err.message);
+            return res.status(500).send(err.message);
+          }
+          const product_quantity = rows[0].product_quantity;
+          if (order_product_status === "อนุมัติให้ทำรายการ" && product_quantity === 0) {
+            return res.status(400).send('ไม่สามารถอนุมัติได้เนื่องจากจำนวนทรัพยากรหมดแล้ว');
+          }
+          // ตรวจสอบว่าสถานะเป็น "อนุมัติให้ทำรายการ" และ product_quantity ไม่เป็น 0 ก่อนทำการอัปเดต
+          if (order_product_status === "อนุมัติให้ทำรายการ") {
             db.query(
-              `UPDATE bank_product SET product_quantity = product_quantity - ? WHERE product_id = ?`,
-              [order_product_quantity, order_product_id],
+              `UPDATE order_sale SET order_product_status = ? WHERE order_sale_id = ?`,
+              [order_product_status, order_sale_id],
               (err, result) => {
                 if (err) {
-                  console.error('Error updating product quantity:', err.message);
+                  console.error('Error updating product:', err.message);
                   return res.status(500).send(err.message);
                 }
-
-                console.log('Product quantity updated successfully');
+                console.log('Order status updated successfully');
+                db.query(
+                  `UPDATE bank_product SET product_quantity = product_quantity - (SELECT order_product_quantity FROM order_sale WHERE order_sale_id = ?) WHERE product_id = ?`,
+                  [order_sale_id, order_product_id],
+                  (err, result) => {
+                    if (err) {
+                      console.error('Error updating product quantity:', err.message);
+                      return res.status(500).send(err.message);
+                    }
+                    console.log('Product quantity updated successfully');
+                    res.json(result);
+                  }
+                );
+              }
+            );
+          } else {
+            // ถ้าสถานะไม่ได้เป็น "อนุมัติให้ทำรายการ" ให้เปลี่ยนสถานะเท่ากับที่ร้องขอ
+            db.query(
+              `UPDATE order_sale SET order_product_status = ? WHERE order_sale_id = ?`,
+              [order_product_status, order_sale_id],
+              (err, result) => {
+                if (err) {
+                  console.error('Error updating product:', err.message);
+                  return res.status(500).send(err.message);
+                }
+                console.log('Order status updated successfully');
                 res.json(result);
               }
             );
           }
-        );
-      } else {
-        res.json(result);
-      }
+        }
+      );
     }
   );
 });
+
 
 app.put('/updateStatusGetproduct/:order_request_id', (req, res) => {
   const order_request_id = req.params.order_request_id;
