@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Mar 30, 2024 at 09:02 AM
+-- Generation Time: Apr 02, 2024 at 09:14 AM
 -- Server version: 10.4.27-MariaDB
 -- PHP Version: 8.2.0
 
@@ -32,7 +32,7 @@ CREATE TABLE `order_request` (
   `order_id` int(11) NOT NULL,
   `bank_name` varchar(20) NOT NULL,
   `userbank_email` varchar(100) NOT NULL,
-  `order_quantity` int(11) NOT NULL,
+  `order_quantity` double NOT NULL,
   `order_borrowDate` date NOT NULL,
   `order_returnDate` date NOT NULL,
   `order_status` varchar(50) NOT NULL,
@@ -48,10 +48,11 @@ CREATE TABLE `order_request` (
 --
 
 INSERT INTO `order_request` (`order_request_id`, `order_id`, `bank_name`, `userbank_email`, `order_quantity`, `order_borrowDate`, `order_returnDate`, `order_status`, `order_status_getproduct`, `order_rental`, `order_date`, `order_rental_pickup`, `customer_status`) VALUES
-(57, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', 1, '2024-03-27', '2024-03-29', 'อนุมัติให้ทำรายการ', 'รับทรัพยากรเรียบร้อยแล้ว', 'รายการเพื่อเช่าหรือยืม', '2024-03-26 19:10:26', 'รีวิวทรัพยากรเรียบร้อย', 'รอธนาคารรีวิวผู้ใช้ '),
-(58, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', 1, '2024-03-27', '2024-03-29', 'อนุมัติให้ทำรายการ', 'รับทรัพยากรเรียบร้อยแล้ว', 'รายการเพื่อเช่าหรือยืม', '2024-03-26 19:10:54', 'รีวิวทรัพยากรเรียบร้อย', 'รอธนาคารรีวิวผู้ใช้ '),
-(59, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', 1, '2024-03-28', '2024-03-29', 'อนุมัติให้ทำรายการ', 'ยังไม่ได้มารับทรัพยากร', 'รายการเพื่อเช่าหรือยืม', '2024-03-28 13:47:41', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้ '),
-(60, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', 1, '2024-03-26', '2024-03-29', 'อนุมัติให้ทำรายการ', 'ยังไม่ได้มารับทรัพยากร', 'รายการเพื่อเช่าหรือยืม', '2024-03-28 15:11:26', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้ ');
+(69, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', 1, '2024-04-01', '2024-04-12', 'อนุมัติให้ทำรายการ', 'รับทรัพยากรเรียบร้อยแล้ว', 'รายการเพื่อเช่าหรือยืม', '2024-04-01 14:22:18', 'รีวิวทรัพยากรเรียบร้อย', 'รีวิวผู้ใช้เรียบร้อย'),
+(70, 70, 'ชาวสวนชาวไร่', 'njanpitak@gmail.com', 1, '2024-03-31', '2024-03-30', 'อนุมัติให้ทำรายการ', 'ยังไม่ได้มารับทรัพยากร', 'รายการเพื่อเช่าหรือยืม', '2024-04-01 18:04:43', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้ '),
+(71, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', 1, '2024-04-01', '2024-04-03', 'อนุมัติให้ทำรายการ', 'รับทรัพยากรเรียบร้อยแล้ว', 'รายการเพื่อเช่าหรือยืม', '2024-04-01 21:40:46', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้ '),
+(82, 70, 'ชาวสวนชาวไร่', 'noppanund@gmail.com', 0.1, '2024-04-03', '2024-04-11', 'อนุมัติให้ทำรายการ', 'ยังไม่ได้มารับทรัพยากร', 'รายการเพื่อเช่าหรือยืม', '2024-04-02 13:51:16', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้ '),
+(83, 69, 'สวัสดีชาวไร่', 'tharakhon.r@ku.th', 0.5, '2024-04-03', '2024-04-11', 'อนุมัติให้ทำรายการ', 'ยังไม่ได้มารับทรัพยากร', 'รายการเพื่อเช่าหรือยืม', '2024-04-02 13:53:44', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้ ');
 
 --
 -- Indexes for dumped tables
@@ -71,7 +72,7 @@ ALTER TABLE `order_request`
 -- AUTO_INCREMENT for table `order_request`
 --
 ALTER TABLE `order_request`
-  MODIFY `order_request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `order_request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

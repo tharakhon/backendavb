@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Mar 30, 2024 at 09:03 AM
+-- Generation Time: Apr 02, 2024 at 09:15 AM
 -- Server version: 10.4.27-MariaDB
 -- PHP Version: 8.2.0
 
@@ -39,10 +39,16 @@ CREATE TABLE `userinbank` (
 --
 
 INSERT INTO `userinbank` (`userBank_id`, `userBank_email`, `userBank_bankName`, `rank_id`) VALUES
-(28, 'earth0981234@gmail.com', 'สวัสดีชาวไร่', 3),
-(29, 'tharakhon.r@ku.th', 'สวัสดีชาวไร่', 2),
-(30, 'earth0981234@gmail.com', 'ชาวสวนชาวไร่', 3),
-(31, 'earth0981234@gmail.com', 'ชาวบ้านอันแสนอบอุ่น', 1);
+(28, 'earth0981234@gmail.com', 'สวัสดีชาวไร่', 1),
+(29, 'tharakhon.r@ku.th', 'สวัสดีชาวไร่', 1),
+(30, 'earth0981234@gmail.com', 'ชาวสวนชาวไร่', 1),
+(31, 'earth0981234@gmail.com', 'ชาวบ้านอันแสนอบอุ่น', 1),
+(33, 'earth0981234@gmail.com', 'ตะวันกระจอก', 2),
+(34, 'tharakhon555@gmail.com', 'ชาวสวนชาวไร่', 1),
+(35, '6330300437tharakhon@gmail.com', 'ชาวสวนชาวไร่', 1),
+(36, 'njanpitak@gmail.com', 'ชาวสวนชาวไร่', 1),
+(37, 'noppanund@gmail.com', 'สวัสดีชาวไร่', 1),
+(38, 'noppanund@gmail.com', 'ชาวสวนชาวไร่', 1);
 
 --
 -- Indexes for dumped tables
@@ -62,7 +68,7 @@ ALTER TABLE `userinbank`
 -- AUTO_INCREMENT for table `userinbank`
 --
 ALTER TABLE `userinbank`
-  MODIFY `userBank_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `userBank_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

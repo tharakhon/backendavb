@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Mar 30, 2024 at 09:03 AM
+-- Generation Time: Apr 02, 2024 at 09:15 AM
 -- Server version: 10.4.27-MariaDB
 -- PHP Version: 8.2.0
 
@@ -45,7 +45,8 @@ CREATE TABLE `review_customer` (
 --
 
 INSERT INTO `review_customer` (`review_customer_id`, `user_email`, `bank_codename`, `product_id`, `detail`, `customer_review_image`, `rating`, `ratings`, `details`, `date`) VALUES
-(28, 'earth0981234@gmail.com', 'AVB 2', 71, 'ดีมาก', 'AVB 2_R (5).jfif', 4.5, 4.5, 'ดีมาก', '2024-03-28 16:05:08');
+(29, 'earth0981234@gmail.com', '555', 81, 'ตรงเวาลามากครับ', '555_1e633faf4f96b9d3c62c21e05bc61e9c.jfif', 5, 5, '้้ิิอุฟุฟวยฟวยฟวยอันเยะทวยฟวยฟวยโอสาส', '2024-04-01 13:53:51'),
+(30, 'earth0981234@gmail.com', 'AVB 2', 70, 'ตรงต่อเวลา', 'AVB 2_1e633faf4f96b9d3c62c21e05bc61e9c.jfif', 5, 4.5, 'รักษาทรัพยากรได้ดี', '2024-04-01 14:43:10');
 
 --
 -- Indexes for dumped tables
@@ -65,7 +66,7 @@ ALTER TABLE `review_customer`
 -- AUTO_INCREMENT for table `review_customer`
 --
 ALTER TABLE `review_customer`
-  MODIFY `review_customer_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `review_customer_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

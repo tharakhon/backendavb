@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Mar 30, 2024 at 09:03 AM
+-- Generation Time: Apr 02, 2024 at 09:15 AM
 -- Server version: 10.4.27-MariaDB
 -- PHP Version: 8.2.0
 
@@ -35,7 +35,7 @@ CREATE TABLE `userbank_exchange` (
   `userbank_productname` varchar(20) NOT NULL,
   `userbank_productimage` varchar(255) NOT NULL,
   `userbank_producttype1` varchar(70) NOT NULL,
-  `userbank_productquantity` int(10) NOT NULL,
+  `userbank_productquantity` double NOT NULL,
   `userbank_unit` varchar(20) NOT NULL,
   `userbank_productdetails` varchar(200) NOT NULL,
   `userbank_status` varchar(50) NOT NULL,
@@ -52,8 +52,8 @@ CREATE TABLE `userbank_exchange` (
 --
 
 INSERT INTO `userbank_exchange` (`exchange_id`, `orderExchange_id`, `bank_name`, `userbank_email`, `userbank_productname`, `userbank_productimage`, `userbank_producttype1`, `userbank_productquantity`, `userbank_unit`, `userbank_productdetails`, `userbank_status`, `userbank_borrowdate`, `userbank_status_getproduct`, `order_exchange`, `exchange_date`, `order_exchange_pickup`, `customer_status_exchange`) VALUES
-(40, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', '11', 'AVB 2_R (3).jfif', 'อุปกรณ์หรือเครื่องมือทางการเกษตรขนาดเล็ก', 11, 'กิโลกรัม', '11', 'อนุมัติให้ทำรายการ', '2024-03-28', 'ยังไม่ได้มารับทรัพยากร', 'รายการเพื่อแลกเปลี่ยน', '2024-03-28 15:23:23', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้'),
-(41, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', '22', 'AVB 2_R (3).jfif', 'อุปกรณ์หรือเครื่องมือทางการเกษตรขนาดเล็ก', 22, 'กิโลกรัม', '22', 'อนุมัติให้ทำรายการ', '2024-03-30', 'ยังไม่ได้มารับทรัพยากร', 'รายการเพื่อแลกเปลี่ยน', '2024-03-28 15:27:23', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้');
+(45, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', '1', 'AVB 2_R (3).jfif', 'อุปกรณ์หรือเครื่องมือทางการเกษตรขนาดเล็ก', 1, 'เครื่อง', '1', 'อนุมัติให้ทำรายการ', '2024-04-23', 'ส่งทรัพยากรเรียบร้อยแล้ว', 'รายการเพื่อแลกเปลี่ยน', '2024-04-01 21:41:59', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้'),
+(46, 70, 'ชาวสวนชาวไร่', 'earth0981234@gmail.com', '2', 'AVB 2_R (3).jfif', 'อุปกรณ์หรือเครื่องมือทางการเกษตรขนาดเล็ก', 2, 'เครื่อง', '2', 'อนุมัติให้ทำรายการ', '2024-04-02', 'รับทรัพยากรเรียบร้อยแล้ว', 'รายการเพื่อแลกเปลี่ยน', '2024-04-01 21:53:13', 'รอการรีวิวทรัพยากร', 'รอธนาคารรีวิวผู้ใช้');
 
 --
 -- Indexes for dumped tables
@@ -73,7 +73,7 @@ ALTER TABLE `userbank_exchange`
 -- AUTO_INCREMENT for table `userbank_exchange`
 --
 ALTER TABLE `userbank_exchange`
-  MODIFY `exchange_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `exchange_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

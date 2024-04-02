@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Mar 30, 2024 at 09:02 AM
+-- Generation Time: Apr 02, 2024 at 09:14 AM
 -- Server version: 10.4.27-MariaDB
 -- PHP Version: 8.2.0
 
@@ -43,11 +43,9 @@ CREATE TABLE `bank_review` (
 --
 
 INSERT INTO `bank_review` (`review_id`, `user_email`, `bank_codename`, `rating`, `detail`, `product_id`, `bank_review_image`, `date`) VALUES
-(81, 'earth0981234@gmail.com', 'AVB 2', 4.5, 'ดีมากก', 70, 'AVB 2_1e633faf4f96b9d3c62c21e05bc61e9c.jfif', '2024-03-26 19:22:10'),
-(82, 'earth0981234@gmail.com', 'AVB 2', 4.5, 'ดีมากกก', 70, 'AVB 2_1e633faf4f96b9d3c62c21e05bc61e9c.jfif', '2024-03-26 19:22:53'),
-(83, 'earth0981234@gmail.com', 'AVB 2', 5, 'ดีเกินนน', 70, 'AVB 2_R (3).jfif', '2024-03-26 19:23:20'),
-(84, 'earth0981234@gmail.com', 'AVB 2', 4.5, 'ดีๆ', 70, 'AVB 2_1e633faf4f96b9d3c62c21e05bc61e9c.jfif', '2024-03-28 13:20:12'),
-(85, 'earth0981234@gmail.com', 'AVB 2', 5, 'ดีๆ', 71, 'AVB 2_R (5).jfif', '2024-03-28 16:02:19');
+(86, 'earth0981234@gmail.com', '555', 5, 'เทแล้วต้นไม้โตไวมาก', 81, '555_8472e5b9-da3a-4e71-987b-6111af1c76b5.jfif', '2024-04-01 13:43:36'),
+(87, 'earth0981234@gmail.com', '555', 5, 'ใช้ทุบพื่้นดีมาก', 82, '555_2f1003b3-d1c8-42ad-91e8-02b0a8924c7e.jfif', '2024-04-01 13:46:14'),
+(88, 'earth0981234@gmail.com', 'AVB 2', 5, '5555', 70, 'AVB 2_1e633faf4f96b9d3c62c21e05bc61e9c.jfif', '2024-04-01 14:35:45');
 
 --
 -- Indexes for dumped tables
@@ -67,7 +65,7 @@ ALTER TABLE `bank_review`
 -- AUTO_INCREMENT for table `bank_review`
 --
 ALTER TABLE `bank_review`
-  MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=86;
+  MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
