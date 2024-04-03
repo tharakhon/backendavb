@@ -136,9 +136,10 @@ app.post('/bank_create', upload.single('bank_image'), (req, res) => {
   });
 });
 
-app.get("/user/:email", (req, res) => {
+app.get("/user/:email/:bank_name", (req, res) => {
   const email = req.params.email;
-  db.query("SELECT * FROM user_master JOIN userinbank ON userinbank.userBank_email = user_master.email JOIN rank_master ON rank_master.rank_id = userinbank.rank_id JOIN bank_master ON bank_master.bank_name = userinbank.userBank_bankName WHERE email = ?", [email], (err, result) => {
+  const bank_name = req.params.bank_name;
+  db.query("SELECT * FROM user_master JOIN userinbank ON userinbank.userBank_email = user_master.email JOIN rank_master ON rank_master.rank_id = userinbank.rank_id JOIN bank_master ON bank_master.bank_name = userinbank.userBank_bankName WHERE email = ? AND bank_master.bank_name = ?", [email,bank_name], (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
@@ -1705,6 +1706,37 @@ app.put('/updateStatususer/:email', (req, res) => {
 
 app.get("/rank", (req, res) => {
   db.query("SELECT * FROM rank_master ", (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal Server Error");
+    } else {
+      if (result.length > 0) {
+        res.send(result);
+      } else {
+        res.send("No data found in the database.");
+      }
+    }
+  });
+});
+
+app.put('/updaterank/:rank_id', (req, res) => {
+  const rank_id = req.params.rank_id;
+  const rank_name = req.body.nameranks; 
+  db.query(
+    `UPDATE rank_master SET rank_name = ? WHERE rank_id = ?`, [rank_name, rank_id], (err, result) => {
+      if (err) {
+        console.error('Error updating rank name:', err.message);
+        return res.status(500).send(err.message);
+      }
+
+      console.log('Rank name updated successfully');
+      res.json(result);
+    }
+  );
+});
+
+app.get("/user", (req, res) => {
+  db.query("SELECT * FROM user_master ", (err, result) => {
     if (err) {
       console.log(err);
       res.status(500).send("Internal Server Error");
